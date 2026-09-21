@@ -1,0 +1,40 @@
+GCC_MPI=g++ -std=c++0x  -mtune=native -march=native -O3 -D OMPI_SKIP_MPICXX -D LINUX64 -D _MPI -I/usr/lib64/mpi/gcc/openmpi/include -L/usr/lib64/mpi/gcc/openmpi/lib64 -D _OMP3 -D _NETCDF -D USE_NETCDF4 -I./netcdfcpp
+BINPATH=./
+DISTRO=opensuseLeap15-5
+VERSIONU=11-01-01-x86-64-pc-linux-$(DISTRO)
+SRC=modapuzr.cc wasimuzr.cc abfluss.cc bodenmod.cc cspline.cc defltuzr.cc etpetr.cc expokorr.cc gwflow.cc infilt.cc interzep.cc irrigate.cc snow_canopy.cc \
+meteoint.cc modefuzr.cc parser.cc siltingup.cc snowmod.cc stringp.cc surfrout.cc teilmod.cc unsatzon.cc wsstream.cc gifreader.cc dataassim.cc \
+netcdfhlp.cc netcdfcpp/ncAtt.cc netcdfcpp/ncByte.cc netcdfcpp/ncChar.cc netcdfcpp/ncCheck.cc netcdfcpp/ncCompoundType.cc \
+netcdfcpp/ncDim.cc netcdfcpp/ncDouble.cc netcdfcpp/ncEnumType.cc netcdfcpp/ncException.cc netcdfcpp/ncFile.cc netcdfcpp/ncFloat.cc \
+netcdfcpp/ncGroup.cc netcdfcpp/ncGroupAtt.cc netcdfcpp/ncInt.cc netcdfcpp/ncInt64.cc netcdfcpp/ncOpaqueType.cc netcdfcpp/ncShort.cc \
+netcdfcpp/ncString.cc netcdfcpp/ncType.cc netcdfcpp/ncUbyte.cc netcdfcpp/ncUint.cc netcdfcpp/ncUint64.cc netcdfcpp/ncUshort.cc \
+netcdfcpp/ncVar.cc netcdfcpp/ncVarAtt.cc netcdfcpp/ncVlenType.cc 
+
+OBJ = $(SRC:%.cc=%.o)
+
+all: ubuntu-richards-openmpi
+
+ubuntu-richards-openmpi: $(BINPATH)wasimuzr-${VERSIONU}-openmpi
+
+$(BINPATH)wasimuzr-${VERSIONU}-openmpi: wasimuzr-openmpi-$(DISTRO).a
+	$(GCC_MPI) wasimuzr-openmpi-$(DISTRO).a -o $(BINPATH)wasimuzr-$(VERSIONU)-openmpi -lm -fopenmp -lgomp -lmpi -lnetcdf
+	strip wasimuzr-$(VERSIONU)-openmpi
+
+wasimuzr-openmpi-$(DISTRO).a: $(OBJ)
+	ar rcv wasimuzr-openmpi-$(DISTRO).a *.o
+	ranlib wasimuzr-openmpi-$(DISTRO).a
+	
+DEPENDFILE = .depend
+
+dep: $(SRC)
+	g++ -std=c++0x  -MM $(SRC) > $(DEPENDFILE)
+
+-include $(DEPENDFILE)
+
+%.o: %.cc
+	$(GCC_MPI) -c $< -fopenmp  
+
+.PHONY: clean
+clean:
+	rm -rf $(BINPATH)wasimuzr-${VERSIONU}-openmpi $(OBJ) wasimuzr-openmpi-$(DISTRO).a
+

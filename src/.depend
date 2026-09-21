@@ -1,0 +1,128 @@
+modapuzr.o: modapuzr.cc modapuzr.h stringp.h modconst.h modef.h \
+ wsstream.h teilmod.h cspline.h snow_canopy.h siltingup.h parser.h \
+ surfrout.h dataassim.h wasim.h
+wasimuzr.o: wasimuzr.cc modapuzr.h stringp.h modconst.h modef.h \
+ wsstream.h teilmod.h cspline.h snow_canopy.h siltingup.h parser.h \
+ surfrout.h dataassim.h wasim.h
+abfluss.o: abfluss.cc stringp.h modconst.h modef.h wsstream.h teilmod.h \
+ cspline.h snow_canopy.h wasim.h
+bodenmod.o: bodenmod.cc stringp.h modconst.h modef.h wsstream.h teilmod.h \
+ cspline.h snow_canopy.h wasim.h
+cspline.o: cspline.cc cspline.h modef.h wsstream.h modconst.h
+defltuzr.o: defltuzr.cc stringp.h modconst.h modef.h wsstream.h wasim.h
+etpetr.o: etpetr.cc stringp.h modconst.h modef.h wsstream.h teilmod.h \
+ cspline.h snow_canopy.h wasim.h
+expokorr.o: expokorr.cc stringp.h modconst.h modef.h wsstream.h teilmod.h \
+ cspline.h snow_canopy.h wasim.h
+gwflow.o: gwflow.cc stringp.h modconst.h modef.h wsstream.h teilmod.h \
+ cspline.h snow_canopy.h wasim.h
+infilt.o: infilt.cc stringp.h modconst.h modef.h wsstream.h teilmod.h \
+ cspline.h snow_canopy.h wasim.h
+interzep.o: interzep.cc stringp.h modconst.h modef.h wsstream.h teilmod.h \
+ cspline.h snow_canopy.h wasim.h
+irrigate.o: irrigate.cc stringp.h modconst.h modef.h wsstream.h teilmod.h \
+ cspline.h snow_canopy.h wasim.h
+snow_canopy.o: snow_canopy.cc snow_canopy.h
+meteoint.o: meteoint.cc teilmod.h cspline.h modef.h wsstream.h modconst.h \
+ snow_canopy.h stringp.h wasim.h
+modefuzr.o: modefuzr.cc stringp.h modconst.h modef.h wsstream.h wasim.h \
+ gifreader.h
+parser.o: parser.cc parser.h
+siltingup.o: siltingup.cc stringp.h modconst.h modef.h wsstream.h \
+ siltingup.h parser.h teilmod.h cspline.h snow_canopy.h wasim.h
+snowmod.o: snowmod.cc stringp.h modconst.h modef.h wsstream.h teilmod.h \
+ cspline.h snow_canopy.h wasim.h
+stringp.o: stringp.cc modconst.h wasim.h
+surfrout.o: surfrout.cc stringp.h modconst.h modef.h wsstream.h \
+ surfrout.h teilmod.h cspline.h snow_canopy.h wasim.h
+teilmod.o: teilmod.cc stringp.h modconst.h modef.h wsstream.h teilmod.h \
+ cspline.h snow_canopy.h wasim.h
+unsatzon.o: unsatzon.cc stringp.h modconst.h modef.h wsstream.h teilmod.h \
+ cspline.h snow_canopy.h wasim.h
+wsstream.o: wsstream.cc wsstream.h
+gifreader.o: gifreader.cc gifreader.h
+dataassim.o: dataassim.cc stringp.h modconst.h modef.h wsstream.h \
+ dataassim.h teilmod.h cspline.h snow_canopy.h wasim.h
+netcdfhlp.o: netcdfhlp.cc
+ncAtt.o: netcdfcpp/ncAtt.cc netcdfcpp/ncAtt.h netcdfcpp/ncType.h \
+ netcdfcpp/ncException.h netcdfcpp/ncGroup.h netcdfcpp/ncEnumType.h \
+ netcdfcpp/ncCheck.h netcdfcpp/ncGroupAtt.h
+ncByte.o: netcdfcpp/ncByte.cc netcdfcpp/ncByte.h netcdfcpp/ncType.h
+ncChar.o: netcdfcpp/ncChar.cc netcdfcpp/ncChar.h netcdfcpp/ncType.h
+ncCheck.o: netcdfcpp/ncCheck.cc
+ncCompoundType.o: netcdfcpp/ncCompoundType.cc netcdfcpp/ncGroup.h \
+ netcdfcpp/ncType.h netcdfcpp/ncEnumType.h netcdfcpp/ncCheck.h \
+ netcdfcpp/ncGroupAtt.h netcdfcpp/ncAtt.h netcdfcpp/ncException.h \
+ netcdfcpp/ncCompoundType.h netcdfcpp/ncByte.h netcdfcpp/ncUbyte.h \
+ netcdfcpp/ncChar.h netcdfcpp/ncShort.h netcdfcpp/ncUshort.h \
+ netcdfcpp/ncInt.h netcdfcpp/ncUint.h netcdfcpp/ncInt64.h \
+ netcdfcpp/ncUint64.h netcdfcpp/ncFloat.h netcdfcpp/ncDouble.h \
+ netcdfcpp/ncString.h
+ncDim.o: netcdfcpp/ncDim.cc netcdfcpp/ncDim.h netcdfcpp/ncGroup.h \
+ netcdfcpp/ncType.h netcdfcpp/ncEnumType.h netcdfcpp/ncCheck.h \
+ netcdfcpp/ncGroupAtt.h netcdfcpp/ncAtt.h netcdfcpp/ncException.h
+ncDouble.o: netcdfcpp/ncDouble.cc netcdfcpp/ncDouble.h netcdfcpp/ncType.h
+ncEnumType.o: netcdfcpp/ncEnumType.cc netcdfcpp/ncEnumType.h \
+ netcdfcpp/ncType.h netcdfcpp/ncCheck.h netcdfcpp/ncGroup.h \
+ netcdfcpp/ncGroupAtt.h netcdfcpp/ncAtt.h netcdfcpp/ncException.h \
+ netcdfcpp/ncByte.h netcdfcpp/ncUbyte.h netcdfcpp/ncChar.h \
+ netcdfcpp/ncShort.h netcdfcpp/ncUshort.h netcdfcpp/ncInt.h \
+ netcdfcpp/ncUint.h netcdfcpp/ncInt64.h netcdfcpp/ncUint64.h \
+ netcdfcpp/ncFloat.h netcdfcpp/ncDouble.h netcdfcpp/ncString.h
+ncException.o: netcdfcpp/ncException.cc
+ncFile.o: netcdfcpp/ncFile.cc netcdfcpp/ncFile.h netcdfcpp/ncGroup.h \
+ netcdfcpp/ncType.h netcdfcpp/ncEnumType.h netcdfcpp/ncCheck.h \
+ netcdfcpp/ncGroupAtt.h netcdfcpp/ncAtt.h netcdfcpp/ncException.h \
+ netcdfcpp/ncByte.h
+ncFloat.o: netcdfcpp/ncFloat.cc netcdfcpp/ncFloat.h netcdfcpp/ncType.h
+ncGroup.o: netcdfcpp/ncGroup.cc netcdfcpp/ncGroup.h netcdfcpp/ncType.h \
+ netcdfcpp/ncEnumType.h netcdfcpp/ncCheck.h netcdfcpp/ncGroupAtt.h \
+ netcdfcpp/ncAtt.h netcdfcpp/ncException.h netcdfcpp/ncVar.h \
+ netcdfcpp/ncVarAtt.h netcdfcpp/ncByte.h netcdfcpp/ncUbyte.h \
+ netcdfcpp/ncChar.h netcdfcpp/ncShort.h netcdfcpp/ncUshort.h \
+ netcdfcpp/ncInt.h netcdfcpp/ncUint.h netcdfcpp/ncInt64.h \
+ netcdfcpp/ncUint64.h netcdfcpp/ncFloat.h netcdfcpp/ncDouble.h \
+ netcdfcpp/ncString.h netcdfcpp/ncDim.h netcdfcpp/ncVlenType.h \
+ netcdfcpp/ncCompoundType.h netcdfcpp/ncOpaqueType.h
+ncGroupAtt.o: netcdfcpp/ncGroupAtt.cc netcdfcpp/ncGroupAtt.h \
+ netcdfcpp/ncAtt.h netcdfcpp/ncType.h netcdfcpp/ncException.h \
+ netcdfcpp/ncGroup.h netcdfcpp/ncEnumType.h netcdfcpp/ncCheck.h
+ncInt.o: netcdfcpp/ncInt.cc netcdfcpp/ncInt.h netcdfcpp/ncType.h
+ncInt64.o: netcdfcpp/ncInt64.cc netcdfcpp/ncInt64.h netcdfcpp/ncType.h
+ncOpaqueType.o: netcdfcpp/ncOpaqueType.cc netcdfcpp/ncOpaqueType.h \
+ netcdfcpp/ncType.h netcdfcpp/ncGroup.h netcdfcpp/ncEnumType.h \
+ netcdfcpp/ncCheck.h netcdfcpp/ncGroupAtt.h netcdfcpp/ncAtt.h \
+ netcdfcpp/ncException.h
+ncShort.o: netcdfcpp/ncShort.cc netcdfcpp/ncShort.h netcdfcpp/ncType.h
+ncString.o: netcdfcpp/ncString.cc netcdfcpp/ncString.h netcdfcpp/ncType.h
+ncType.o: netcdfcpp/ncType.cc netcdfcpp/ncType.h netcdfcpp/ncGroup.h \
+ netcdfcpp/ncEnumType.h netcdfcpp/ncCheck.h netcdfcpp/ncGroupAtt.h \
+ netcdfcpp/ncAtt.h netcdfcpp/ncException.h
+ncUbyte.o: netcdfcpp/ncUbyte.cc netcdfcpp/ncUbyte.h netcdfcpp/ncType.h
+ncUint.o: netcdfcpp/ncUint.cc netcdfcpp/ncUint.h netcdfcpp/ncType.h
+ncUint64.o: netcdfcpp/ncUint64.cc netcdfcpp/ncUint64.h netcdfcpp/ncType.h
+ncUshort.o: netcdfcpp/ncUshort.cc netcdfcpp/ncUshort.h netcdfcpp/ncType.h
+ncVar.o: netcdfcpp/ncVar.cc netcdfcpp/ncVarAtt.h netcdfcpp/ncAtt.h \
+ netcdfcpp/ncType.h netcdfcpp/ncException.h netcdfcpp/ncDim.h \
+ netcdfcpp/ncVar.h netcdfcpp/ncGroup.h netcdfcpp/ncEnumType.h \
+ netcdfcpp/ncCheck.h netcdfcpp/ncGroupAtt.h netcdfcpp/ncByte.h \
+ netcdfcpp/ncUbyte.h netcdfcpp/ncChar.h netcdfcpp/ncShort.h \
+ netcdfcpp/ncUshort.h netcdfcpp/ncInt.h netcdfcpp/ncUint.h \
+ netcdfcpp/ncInt64.h netcdfcpp/ncUint64.h netcdfcpp/ncFloat.h \
+ netcdfcpp/ncDouble.h netcdfcpp/ncString.h
+ncVarAtt.o: netcdfcpp/ncVarAtt.cc netcdfcpp/ncVar.h netcdfcpp/ncVarAtt.h \
+ netcdfcpp/ncAtt.h netcdfcpp/ncType.h netcdfcpp/ncException.h \
+ netcdfcpp/ncGroup.h netcdfcpp/ncEnumType.h netcdfcpp/ncCheck.h \
+ netcdfcpp/ncGroupAtt.h netcdfcpp/ncByte.h netcdfcpp/ncUbyte.h \
+ netcdfcpp/ncChar.h netcdfcpp/ncShort.h netcdfcpp/ncUshort.h \
+ netcdfcpp/ncInt.h netcdfcpp/ncUint.h netcdfcpp/ncInt64.h \
+ netcdfcpp/ncUint64.h netcdfcpp/ncFloat.h netcdfcpp/ncDouble.h \
+ netcdfcpp/ncString.h
+ncVlenType.o: netcdfcpp/ncVlenType.cc netcdfcpp/ncVlenType.h \
+ netcdfcpp/ncType.h netcdfcpp/ncGroup.h netcdfcpp/ncEnumType.h \
+ netcdfcpp/ncCheck.h netcdfcpp/ncGroupAtt.h netcdfcpp/ncAtt.h \
+ netcdfcpp/ncException.h netcdfcpp/ncByte.h netcdfcpp/ncUbyte.h \
+ netcdfcpp/ncChar.h netcdfcpp/ncShort.h netcdfcpp/ncUshort.h \
+ netcdfcpp/ncInt.h netcdfcpp/ncUint.h netcdfcpp/ncInt64.h \
+ netcdfcpp/ncUint64.h netcdfcpp/ncFloat.h netcdfcpp/ncDouble.h \
+ netcdfcpp/ncString.h

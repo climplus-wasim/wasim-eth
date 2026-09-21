@@ -1,0 +1,40 @@
+GCC_MPI=g++ -std=c++0x -mtune=haswell -march=haswell -O3 -D LINUX64 -D _MPI -I/usr/lib/x86_64-linux-gnu/mpich/include -L/usr/lib/x86_64-linux-gnu/mpich/lib -D _OMP3 -D _NETCDF -D USE_NETCDF4 -L/usr/lib/x86_64-linux-gnu -I/usr/include -I./netcdfcpp -Wno-unused-result
+BINPATH=./
+DISTRO=ubuntu240403
+VERSIONU=11-01-01-x86-64-pc-linux-$(DISTRO)
+OBJ=abfluss.o bodenmod.o cspline.o defltuzr.o etpetr.o expokorr.o gwflow.o infilt.o interzep.o irrigate.o snow_canopy.o \
+meteoint.o modefuzr.o parser.o siltingup.o snowmod.o stringp.o surfrout.o teilmod.o unsatzon.o wsstream.o gifreader.o dataassim.o modapuzr.o wasimuzr.o \
+netcdfhlp.o netcdfcpp/ncAtt.o netcdfcpp/ncByte.o netcdfcpp/ncChar.o netcdfcpp/ncCheck.o netcdfcpp/ncCompoundType.o \
+netcdfcpp/ncDim.o netcdfcpp/ncDouble.o netcdfcpp/ncEnumType.o netcdfcpp/ncException.o netcdfcpp/ncFile.o netcdfcpp/ncFloat.o \
+netcdfcpp/ncGroup.o netcdfcpp/ncGroupAtt.o netcdfcpp/ncInt.o netcdfcpp/ncInt64.o netcdfcpp/ncOpaqueType.o netcdfcpp/ncShort.o \
+netcdfcpp/ncString.o netcdfcpp/ncType.o netcdfcpp/ncUbyte.o netcdfcpp/ncUint.o netcdfcpp/ncUint64.o netcdfcpp/ncUshort.o \
+netcdfcpp/ncVar.o netcdfcpp/ncVarAtt.o netcdfcpp/ncVlenType.o 
+
+SRC = $(OBJ:%.o=%.cc)
+
+all: ubuntu-richards-mpi
+
+ubuntu-richards-mpi: $(BINPATH)wasimuzr-${VERSIONU}-mpi
+
+$(BINPATH)wasimuzr-${VERSIONU}-mpi: wasimuzr-mpi-$(DISTRO).a
+	$(GCC_MPI) wasimuzr-mpi-$(DISTRO).a -o $(BINPATH)wasimuzr-$(VERSIONU)-mpi -lm -fopenmp -lgomp -lmpich -lnetcdf
+	strip wasimuzr-$(VERSIONU)-mpi
+
+wasimuzr-mpi-$(DISTRO).a: $(OBJ)
+	ar rcv wasimuzr-mpi-$(DISTRO).a *.o
+	ranlib wasimuzr-mpi-$(DISTRO).a
+	
+DEPENDFILE = .depend
+
+dep: $(SRC)
+	$(GCC_MPI) -std=c++0x  -MM $(SRC) > $(DEPENDFILE)
+
+-include $(DEPENDFILE)
+
+%.o: %.cc
+	$(GCC_MPI) -c $< -fopenmp  
+
+.PHONY: clean
+clean:
+	rm -rf $(BINPATH)wasimuzr-${VERSIONU}-mpi $(OBJ) wasimuzr-mpi-$(DISTRO).a
+
