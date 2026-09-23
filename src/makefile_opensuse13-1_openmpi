@@ -1,7 +1,7 @@
 GCC_MPI=g++ -std=c++0x  -mtune=native -march=native -O3 -D LINUX64 -D _MPI -I/usr/lib64/mpi/gcc/openmpi/include -L/usr/lib64/mpi/gcc/openmpi/lib64 -D _OMP3 -D _NETCDF -D USE_NETCDF4 -I./netcdfcpp
 BINPATH=./
 VERSIONU=11-01-01-x86-64-pc-linux-opensuse131
-OBJ=abfluss.o bodenmod.o cspline.o defltuzr.o etpetr.o expokorr.o gwflow.o infilt.o interzep.o irrigate.o snow_canopy.o \
+OBJ=abfluss.o cspline.o defltuzr.o etpetr.o expokorr.o gwflow.o interzep.o irrigate.o snow_canopy.o \
 meteoint.o modefuzr.o parser.o siltingup.o snowmod.o stringp.o surfrout.o teilmod.o unsatzon.o wsstream.o gifreader.o dataassim.o \
 netcdfhlp.o netcdfcpp/ncAtt.o netcdfcpp/ncByte.o netcdfcpp/ncChar.o netcdfcpp/ncCheck.o netcdfcpp/ncCompoundType.o \
 netcdfcpp/ncDim.o netcdfcpp/ncDouble.o netcdfcpp/ncEnumType.o netcdfcpp/ncException.o netcdfcpp/ncFile.o netcdfcpp/ncFloat.o \
