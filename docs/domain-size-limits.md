@@ -1,6 +1,6 @@
 # Model domain size: limits and overflow risks
 
-Findings from reading the source of version 11.01.01. Nothing here was tested with a real large domain. The thresholds come from the data types in the code.
+Findings from reading the source of version 11.01.01, compared with the model description in [wasim_2025_en.pdf](wasim_2025_en.pdf) (manual version 11.00.10, June 2026). Nothing here was tested with a real large domain. The thresholds come from the data types in the code.
 
 ## Short answer
 
@@ -9,8 +9,8 @@ Findings from reading the source of version 11.01.01. Nothing here was tested wi
 | Cells per grid, netCDF input/output | < 2,147,483,647 (≈ 46,341 × 46,341) | `int` products `ncols*nrows` in `modefuzr.cc`, `netcdfhlp.cc` | **crash or memory corruption** above it |
 | Cells per grid, Windows builds | ≈ 268 million (≈ 16,384 × 16,384) | `long` (32 bit on Windows) in `memory_handling::matrix()` | wrong allocation above it |
 | Rows with MPI | 32,767 guaranteed by the MPI standard; Open MPI allows ~2^31 | row number used as MPI message tag | only matters for other MPI implementations |
-| Zone codes (subbasin grid) | 0 … 32,766 (documented as 32,767) | `maxzonenwert`, `modconst.h` | code 32767 writes out of bounds |
-| Number of distinct zones | 15,999 (documented as 16,000) | `maxzonenzahl`, `modconst.h` | 16,000 zones write out of bounds |
+| Zone codes (subbasin grid) | 0 … 32,766 (manual: up to 32,768) | `maxzonenwert`, `modconst.h` | code 32767 writes out of bounds |
+| Number of distinct zones | 15,999 (manual: 16,000) | `maxzonenzahl`, `modconst.h` | 16,000 zones write out of bounds |
 | Number of regions (regression interpolation) | 30 | `_max_regionen_zahl_` | checked |
 | Grids held in memory | 1,000 | `gridmaxanzahl` | checked |
 | Memory on MPI rank 0 | at least 1–2 full grids (8 bytes/cell each) during output | full-grid gather in `MPIGatherIntoNewGrid`, plus netCDF flat buffer | practical limit |
@@ -68,7 +68,7 @@ zzone = calloc(maxzonenzahl, ...);            // indices 0 … 15999
 if (zonmax > maxzonenzahl)                    // lets 16000 through
 ```
 
-Code 32767, or exactly 16,000 distinct zones, writes one element past the end of the array. The same pattern is used for regions (`defltuzr.cc:3783ff`). Until this is fixed, keep zone codes ≤ 32,766 and use fewer than 16,000 zones. Also, `zonenid = (int)zn[i][j] + 0.5` truncates rather than rounds, so codes must be stored as exact integers in the grid.
+Code 32767, or exactly 16,000 distinct zones, writes one element past the end of the array. The manual ([wasim_2025_en.pdf](wasim_2025_en.pdf), section 7.3 "Error codes of WaSiM") documents error 3 as "zone codes or region codes too small (<1) or too large (>32768)" and error 4 as "too many zones (>16000)", and gives pour points the range 1…32767. So values the manual allows can trigger the bug, and code 32768 is in fact rejected. The same pattern is used for regions (`defltuzr.cc:3783ff`). Until this is fixed, keep zone codes ≤ 32,766 and use fewer than 16,000 zones. Also, `zonenid = (int)zn[i][j] + 0.5` truncates rather than rounds, so codes must be stored as exact integers in the grid.
 
 ### netCDF coordinates
 

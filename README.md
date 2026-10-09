@@ -1,5 +1,7 @@
 This repository contains the sources of the hydrologic model system WaSiM-ETH (Water balance Simulation Model) starting with version 11.01.01. Earlier versions are available via https://www.wasim.ch/en/dialog/contact.htm
 
+The model description (manual) is in [docs/wasim_2025_en.pdf](docs/wasim_2025_en.pdf), also available from https://www.wasim.ch/downloads/doku/wasim/wasim_2025_en.pdf.
+
 In /docs, a readme can be found how to compile and run the model on RHEL 9. Known limits on model domain size are described in [docs/domain-size-limits.md](docs/domain-size-limits.md), and known problems are listed in [TODO.md](TODO.md).
 
 ## Dependencies
