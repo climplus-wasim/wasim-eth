@@ -206,6 +206,8 @@ MPI_Barrier(MPI_COMM_WORLD);
 		(*WSstream) << "32-bit Version on Linux "<< "[end-entry]";
 #elif LINUX64
 		(*WSstream) << "64-bit Version on Linux "<< "[end-entry]";
+#elif MACOS64
+		(*WSstream) << "64-bit Version on macOS "<< "[end-entry]";
 #else
 		(*WSstream) << " unspecified version "<< "[end-entry]";
 #endif
