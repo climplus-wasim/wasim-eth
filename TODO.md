@@ -2,10 +2,13 @@
 
 Known problems, noted but not yet fixed. Keep in mind that there is some idle-ish interest in running this logic on GPU. If the performance and architecture arguments keep piling up in favour of a rewrite (likely in [gridtools](https://github.com/GridTools/gridtools), [gt4py](https://github.com/GridTools/gt4py)), the balance will tip sooner. For now, gather painpoints/todos here; it's hard to distinguish between "want" and "need" for now. We can provide tentative labels on feasibility for tasks, though.
 
+Experiments that should not go onto branches of the main repo (e.g. due to data size) should make use of <https://github.com/mmyrte/wasim-forclim-evoland-experiments>. It currently has git-lfs enabled on zip files (github standard limits).
+
 ## Documentation
 
 - [ ] How/why to run using mpirun/mpiexec
 - [ ] translate german comments (not symbols!) to english, but translate/explain when a symbol uses an abbreviation, be it english or german.
+- [ ] do we still need docs/RHEL8und9_make_wasim_readme.txt? what can we integrate into the main readme?
 
 ## Build
 
@@ -32,6 +35,15 @@ Known problems, noted but not yet fixed. Keep in mind that there is some idle-is
 - [ ] check for low-hanging performance fruit
 - [ ] autoformat using clang-format?
 
+## Unit/integration tests
+
+- [ ] Unit tests to ensure correctness and performance experiments
+- [ ] integration or golden tests for interface modernization
+  - [ ] control file
+  - [ ] wrapper scripts for control file generation, modern/standardized string interpolation? so far Ahmed used regexes to manipulate the files; path construction is fickle
+  - [ ] input data formats (geotiff?)
+- [ ] suitable abstraction integration tests for any experiments to translate to `gt4py`...
+
 ## Domain size and limits
 
 See [docs/domain-size-limits.md](docs/domain-size-limits.md) for details.
@@ -44,3 +56,7 @@ See [docs/domain-size-limits.md](docs/domain-size-limits.md) for details.
 - [ ] `memory_handling::matrix()` computes sizes in `long`. On Windows `long` is 32 bit, so grids with more than about 268 million cells (2^31 bytes per grid, e.g. 16,384 × 16,384) overflow there. This is fine on Linux and macOS.
 - [ ] MPI grid exchange uses the row number as message tag. The MPI standard only guarantees tags up to 32767; Open MPI allows much more, but other implementations may not. Check `MPI_TAG_UB` if domains have more than 32767 rows.
 - [ ] Practical limits on writing out grids: is reading/writing handled in the main thread or delegated, can we tune a batch size for our system/memory availability...
+
+## Setup
+
+The setups we have inherited for the Swiss domain (hydrological Switzerland) are distributed across 17 basins, necessitating either a harness to run the catchments succesively and in concert, or a singular model that runs across the full domain.
