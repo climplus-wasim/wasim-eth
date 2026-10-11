@@ -804,7 +804,7 @@ SCN_ir_radiation(NULL), SCN_snow_throuhfall(NULL), DetailedGlacierParams(0)
 			{
 				(*WSstream) << "WARNING: \n------------- warning: -------------\n"
 					<< "Could not read the optional parameter EnBalScaling (double),\n"
-					<< "for snow melt methods with energy baöance that will be used for scaling the energy balance (i.e. affect melt rates)\n"
+					<< "for snow melt methods with energy balance that will be used for scaling the energy balance (i.e. affect melt rates)\n"
 					<< "Setting default values of 1.0" << "[end-entry]";
 			}
 			tstr = fgets(tstr, _stringsize_, steuerdatei);

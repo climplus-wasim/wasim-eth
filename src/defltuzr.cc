@@ -1358,7 +1358,7 @@ void defaultini::GetIrrigTable(int version)
 									sscanf(scheme,"%lf",&endamount);
 									if (!strstr(scheme,"every")) irrigationtable_error(i);
 									sprintf(scheme,"%s",strstr(scheme,"every")+strlen("every")+1);
-									sscanf(scheme,"%ld",&timestep);
+									sscanf(scheme,"%d",&timestep);
 									/* now filling the rrigation table using an internal calendar (without 02/29) */
 									irrigationtable[i].month[actindex] =startmonth;
 									irrigationtable[i].day[actindex]   =startday;
@@ -1409,7 +1409,7 @@ void defaultini::GetIrrigTable(int version)
 										sscanf(scheme,"%d",&times);
 										if (!strstr(scheme,"every")) irrigationtable_error(i);
 										sprintf(scheme,"%s",strstr(scheme,"every")+strlen("every")+1);
-										sscanf(scheme,"%ld",&timestep);
+										sscanf(scheme,"%d",&timestep);
 										/* now filling the rrigation table using an internal calendar (without 02/29) */
 										irrigationtable[i].tabcnt = actindex+times-1; /* first: there are only two known entries (start and end date) */
 										irrigationtable[i].month  = (long*)realloc(irrigationtable[i].month,(irrigationtable[i].tabcnt+1)*sizeof(long));

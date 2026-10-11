@@ -86,7 +86,7 @@ SRC = abfluss.cc cspline.cc dataassim.cc defltuzr.cc etpetr.cc expokorr.cc gifre
       snow_canopy.cc snowmod.cc stringp.cc surfrout.cc teilmod.cc unsatzon.cc wasimuzr.cc wsstream.cc \
       $(NCXX_SRC)
 
-BUILDDIR = build/$(VARIANT)-$(NCXX)
+BUILDDIR = build/$(VARIANT)-$(NCXX)-$(notdir $(firstword $(CXX)))
 OBJ      = $(SRC:%.cc=$(BUILDDIR)/%.o)
 DEP      = $(OBJ:.o=.d)
 

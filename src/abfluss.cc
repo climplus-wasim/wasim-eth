@@ -4261,7 +4261,7 @@ void abflussmodellklasse::run(long me,long se, long tg, long mt, long jr, int ac
 	{
 		if (lastday != tg)
 		{
-			sprintf(additionalinfo, "routing only for day %.04d-%.02d-%.02d",jr,mt,tg);
+			sprintf(additionalinfo, "routing only for day %.04ld-%.02ld-%.02ld",jr,mt,tg);
 			lastday = tg;
 		}
 	}

@@ -31,8 +31,12 @@ Experiments that should not go onto branches of the main repo (e.g. due to data 
 
 ## Code
 
-- [ ] `delete` used on memory allocated with `new[]` (undefined behaviour), reported by clang `-Wmismatched-new-delete`: `src/unsatzon.cc:14798`, `src/netcdfcpp_Linux/ncGroup.cc:107`.
-- [ ] `printf`-style format/argument type mismatches, e.g. `src/unsatzon.cc:10428` (`%d` with a `long`). Build with clang `-Wformat` for the full list.
+- [x] `delete` used on memory allocated with `new[]` (undefined behaviour), reported by clang `-Wmismatched-new-delete`: `src/unsatzon.cc:14798`, `src/netcdfcpp_Linux/ncGroup.cc:107`.
+- [x] `printf`-style format/argument type mismatches, e.g. `src/unsatzon.cc:10428` (`%d` with a `long`). Build with clang `-Wformat` for the full list. Fixed all reported by clang 18, including `sscanf("%ld")` into an `int` (`defltuzr.cc:1361`, `1412`, irrigation table, overwrote 4 bytes next to the variable), non-literal format strings in `parser.cc`, and a missing virtual destructor (`dataassim.h`). Golden tests unchanged.
+- [ ] Possible logic errors reported by clang, not changed because a fix changes results:
+  - `snowmod.cc:5294`: `refTemperSnow[i][j][...];` has no effect, presumably meant `snowTemp = ...`; with layered snow and heat transfer, `UpdateSWEStack` always gets a snow temperature of 0.
+  - `meteoint.cc:2250`: `STAT[...] && 0` is always false, so the check for "no station at all" can never fire.
+  - The routine that fills zone codes for missing codes appears three times with an ambiguous `else` (`siltingup.cc:257`, `snowmod.cc:395`, `unsatzon.cc:930`): the `else` binds to the inner `if`, but in `unsatzon.cc` it is indented as if it belonged to the outer one. Check which is intended.
 - [ ] consider building a friendly entrypoint printing a friendly/formatted message when calling with `-h` or `--help` or without arguments.
   - [ ] Do not start MPI or OMP processes before parsing the flags, if possible.
 - [ ] convert to a consistent utf-8, LF format

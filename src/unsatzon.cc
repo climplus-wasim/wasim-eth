@@ -10425,7 +10425,7 @@ void unsatzonmodellklasse::run(long me,long se,long tg,long mt,long jr,long acts
 							(*WSstream) << "FATAL: error opening log-file "<< logfilename <<"[end-entry]";
 							throw(5);
 						}
-						fprintf(logdatei,"%2d.%2d., %2d h r=%3d, c=%3d : ziter=%3d, max_err = %lg \n",tag,monat,stunde,i,j,ziter,m_err);
+						fprintf(logdatei,"%2ld.%2ld., %2ld h r=%3d, c=%3d : ziter=%3d, max_err = %lg \n",tag,monat,stunde,i,j,ziter,m_err);
 						fclose(logdatei);
 					}
 
@@ -14795,7 +14795,7 @@ void unsatzonmodellklasse::GetExternalGWTable(int iExternalTimeStep)
 			FILLPOR=NULL;
 		}
 		m_bCoupled=true;
-		delete searchtext;
+		delete[] searchtext;
 	}
 	// now we know, that we have to initialize the GW table by the values given in the external GWTable file 
 	// the HEAD from WaSiM's GW-Model is initialized from the unsatzon-model's gwstand-grid, so we are on the save side
