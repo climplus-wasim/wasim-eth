@@ -1580,9 +1580,9 @@ Deshalb wird diese Routine ohne Parameter aufgerufen. */
 	if (mpi_rank == 0)
 	{
 		(*WSstream) << "ranking zones from " << (*p_gridinfo)[1].name << " for " << instanzname << "[end-entry]";
-		zzone = (statrecord *)calloc(maxzonenzahl, sizeof(statrecord));  /* maxzonenzahl = 8000 zones */
+		zzone = (statrecord *)calloc(maxzonenzahl + 1, sizeof(statrecord));  /* maxzonenzahl zones (16000), index 0 unused */
 		if (!zzone) speichererror(1);
-		zzarray = (Tzarray *)calloc((size_t)maxzonenwert, sizeof(Tzarray)); /* zones codes up to max. 32767 (maxzonenwert) */
+		zzarray = (Tzarray *)calloc((size_t)maxzonenwert + 1, sizeof(Tzarray)); /* zones codes up to max. 32767 (maxzonenwert) */
 		if (!zzarray) speichererror(1);
 		FirstLastCol = (firstlast *)calloc(nrows + 1, sizeof(firstlast));
 		zzone[0].n = 0.0;
@@ -1601,7 +1601,7 @@ Deshalb wird diese Routine ohne Parameter aufgerufen. */
 				{
 					if (FirstLastCol[i].First == 0) FirstLastCol[i].First = j;
 					FirstLastCol[i].Last = j;
-					zonenid = (int)zn[i][j] + 0.5;
+					zonenid = (int)(zn[i][j] + 0.5);
 					if ((zonenid<0) || (zonenid>maxzonenwert))
 					{
 						(*WSstream) << "FATAL: invalid zone code in " << gridinfo[2].name
@@ -3780,9 +3780,9 @@ void defaultini::analyze_regions(int regioindex)
 	if (mpi_rank == 0)
 	{
 		(*WSstream) << "ranking regions from " << gridinfo[regioindex].name << " for " << instanzname << "[end-entry]";
-		zzone = (statrecord *)calloc(maxzonenzahl, sizeof(statrecord));
+		zzone = (statrecord *)calloc(maxzonenzahl + 1, sizeof(statrecord));
 		if (!zzone) speichererror(1);
-		zzarray = (Tzarray *)calloc((size_t)maxzonenwert, sizeof(Tzarray));
+		zzarray = (Tzarray *)calloc((size_t)maxzonenwert + 1, sizeof(Tzarray));
 		if (!zzarray) speichererror(1);
 		zzone[0].n = 0.0;
 		zzone[0].sx = 0.0;
@@ -3797,7 +3797,7 @@ void defaultini::analyze_regions(int regioindex)
 			{
 				if (zn[i][j] != nodata)
 				{
-					zonenid = (int)REGION1[i][j] + 0.5;
+					zonenid = (int)(REGION1[i][j] + 0.5);
 					if ((zonenid<1) || (zonenid>maxregionenwert))
 					{
 						(*WSstream) << "FATAL: invalid region code in " << gridinfo[regioindex].name

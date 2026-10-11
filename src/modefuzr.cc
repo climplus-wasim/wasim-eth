@@ -4060,8 +4060,8 @@ void modelobject::printgridfile(char *dateiname, double **grid, bool bTextMode, 
         double *latbuf, *lonbuf;
         
         if(gridinfo[1].has_latgrid_) {
-            latbuf = new double[(ncols)*(nrows)];
-            int count = 0;
+            latbuf = new double[(size_t)ncols * nrows];
+            size_t count = 0;
             for (j=1; j<=ncols; j++) {
 				for (i = 1; i <= nrows; i++) {
 						latbuf[count] = (gridinfo[gridinfo[1].latgrid_index_].pointer[i]) ? gridinfo[gridinfo[1].latgrid_index_].pointer[i][j] : nodata;
@@ -4072,8 +4072,8 @@ void modelobject::printgridfile(char *dateiname, double **grid, bool bTextMode, 
         }
         
         if(gridinfo[1].has_longrid_) {
-            lonbuf = new double[(ncols)*(nrows)];
-            int count = 0;
+            lonbuf = new double[(size_t)ncols * nrows];
+            size_t count = 0;
 			for (j = 1; j <= ncols; j++) {
 				for (i = 1; i <= nrows; i++) {
 					lonbuf[count] = (gridinfo[gridinfo[1].longrid_index_].pointer[i])?gridinfo[gridinfo[1].longrid_index_].pointer[i][j]:nodata;
@@ -4086,8 +4086,8 @@ void modelobject::printgridfile(char *dateiname, double **grid, bool bTextMode, 
         // Since Wasim doesn't use row and column 0 of the array, we have to copy the data for netcdf
         if (doublemode) {
 
-            double *gridbuf = new double[(ncols)*(nrows)];
-            int count = 0;
+            double *gridbuf = new double[(size_t)ncols * nrows];
+            size_t count = 0;
 			for (j = 1; j <= ncols; j++) {
 				for (i = 1; i <= nrows; i++) {
                     gridbuf[count] = (grid[i])?grid[i][j]:nodata;
@@ -4101,8 +4101,8 @@ void modelobject::printgridfile(char *dateiname, double **grid, bool bTextMode, 
             
         } else {
             
-            float *gridbuf = new float[(ncols)*(nrows)];
-            int count = 0;
+            float *gridbuf = new float[(size_t)ncols * nrows];
+            size_t count = 0;
 			for (j = 1; j <= ncols; j++) {
 				for (i = 1; i <= nrows; i++) {
 					gridbuf[count] = (grid[i]) ? grid[i][j] : nodata;
@@ -4355,8 +4355,8 @@ void modelobject::printsummengridfile(char *dateiname, double **grid, bool bText
         double *latbuf, *lonbuf;
         
         if(gridinfo[1].has_latgrid_) {
-            latbuf = new double[(ncols)*(nrows)];
-            int count = 0;
+            latbuf = new double[(size_t)ncols * nrows];
+            size_t count = 0;
 			for (j = 1; j <= ncols; j++) {
 				for (i = 1; i <= nrows; i++) {
 					latbuf[count] = (gridinfo[gridinfo[1].latgrid_index_].pointer[i])?gridinfo[gridinfo[1].latgrid_index_].pointer[i][j]:nodata;
@@ -4367,8 +4367,8 @@ void modelobject::printsummengridfile(char *dateiname, double **grid, bool bText
         }
         
         if(gridinfo[1].has_longrid_) {
-            lonbuf = new double[(ncols)*(nrows)];
-            int count = 0;
+            lonbuf = new double[(size_t)ncols * nrows];
+            size_t count = 0;
 			for (j = 1; j <= ncols; j++) {
 				for (i = 1; i <= nrows; i++) {
 					lonbuf[count] = (gridinfo[gridinfo[1].longrid_index_].pointer[i])?gridinfo[gridinfo[1].longrid_index_].pointer[i][j]:nodata;
@@ -4380,8 +4380,8 @@ void modelobject::printsummengridfile(char *dateiname, double **grid, bool bText
 
         // Since Wasim doesn't use row and column 0 of the array, we have to copy the data for netcdf
         if (bDoubleMode) {
-            double *gridbuf = new double[(ncols)*(nrows)];
-            int count = 0;
+            double *gridbuf = new double[(size_t)ncols * nrows];
+            size_t count = 0;
 			for (j = 1; j <= ncols; j++) {
 				for (i = 1; i <= nrows; i++) {
 					gridbuf[count] = (grid[i])?grid[i][j]:nodata;
@@ -4391,8 +4391,8 @@ void modelobject::printsummengridfile(char *dateiname, double **grid, bool bText
             netcdfOut->writeTimestep(true, gridbuf, NULL, completednamenetcdf, varname, nrows, ncols, nodata,cellsize);
             delete[] gridbuf;
         } else {
-            float *gridbuf = new float[(ncols)*(nrows)];
-            int count = 0;
+            float *gridbuf = new float[(size_t)ncols * nrows];
+            size_t count = 0;
 			for (j = 1; j <= ncols; j++) {
 				for (i = 1; i <= nrows; i++) {
 					gridbuf[count] = (grid[i])?grid[i][j]:nodata;
@@ -6011,8 +6011,8 @@ void modelobject::printstackfile(char *dateiname, double ***stack, int levels, b
 			double *latbuf, *lonbuf;
 
 			if (gridinfo[1].has_latgrid_) {
-				latbuf = new double[(ncols)*(nrows)];
-				int count = 0;
+				latbuf = new double[(size_t)ncols * nrows];
+				size_t count = 0;
 				for (j = 1; j <= ncols; j++) {
 					for (i = 1; i <= nrows; i++) {
 						latbuf[count] = (gridinfo[gridinfo[1].latgrid_index_].pointer[i]) ? gridinfo[gridinfo[1].latgrid_index_].pointer[i][j] : nodata;
@@ -6023,8 +6023,8 @@ void modelobject::printstackfile(char *dateiname, double ***stack, int levels, b
 			}
 
 			if (gridinfo[1].has_longrid_) {
-				lonbuf = new double[(ncols)*(nrows)];
-				int count = 0;
+				lonbuf = new double[(size_t)ncols * nrows];
+				size_t count = 0;
 				for (j = 1; j <= ncols; j++) {
 					for (i = 1; i <= nrows; i++) {
 						lonbuf[count] = (gridinfo[gridinfo[1].longrid_index_].pointer[i]) ? gridinfo[gridinfo[1].longrid_index_].pointer[i][j] : nodata;
@@ -6036,9 +6036,9 @@ void modelobject::printstackfile(char *dateiname, double ***stack, int levels, b
 
 			// Since Wasim doesn't use row and column 0 of the array, we have to copy the data for netcdf
 			if (bDoubleMode) {
-				double *stackbuf = new double[(ncols)*(nrows)];
+				double *stackbuf = new double[(size_t)ncols * nrows];
 				for (int k = 0; k <= levels; k++) {
-					int count = 0;
+					size_t count = 0;
 					for (j = 1; j <= ncols; j++) {
 						for (i = 1; i <= nrows; i++) {
 							stackbuf[count] = (stack[i]) ? stack[i][j][k] : nodata;
@@ -6053,9 +6053,9 @@ void modelobject::printstackfile(char *dateiname, double ***stack, int levels, b
 				delete[] stackbuf;
 			}
 			else {
-				float *stackbuf = new float[(ncols)*(nrows)];
+				float *stackbuf = new float[(size_t)ncols * nrows];
 				for (int k = 0; k <= levels; k++) {
-					int count = 0;
+					size_t count = 0;
 					for (j = 1; j <= ncols; j++) {
 						for (i = 1; i <= nrows; i++) {
 							stackbuf[count] = (stack[i]) ? stack[i][j][k] : 0;

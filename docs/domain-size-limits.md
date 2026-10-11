@@ -2,15 +2,17 @@
 
 Findings from reading the source of version 11.01.01, compared with the model description in [wasim_2025_en.pdf](wasim_2025_en.pdf) (manual version 11.00.10, June 2026). Nothing here was tested with a real large domain. The thresholds come from the data types in the code.
 
+**Update 2026-10-11:** the netCDF buffer overflow, the zone code off-by-one errors and the `int` coordinates in the netCDF reader are fixed (wasim-eth commit history, see TODO.md). The sections below describe the original behaviour.
+
 ## Short answer
 
 | Limit | Value | Where | Severity |
 | --- | --- | --- | --- |
-| Cells per grid, netCDF input/output | < 2,147,483,647 (≈ 46,341 × 46,341) | `int` products `ncols*nrows` in `modefuzr.cc`, `netcdfhlp.cc` | **crash or memory corruption** above it |
+| Cells per grid, netCDF input/output | < 2,147,483,647 (≈ 46,341 × 46,341) | `int` products `ncols*nrows` in `modefuzr.cc`, `netcdfhlp.cc` | **fixed**: sizes now `size_t` (was: crash or memory corruption above it) |
 | Cells per grid, Windows builds | ≈ 268 million (≈ 16,384 × 16,384) | `long` (32 bit on Windows) in `memory_handling::matrix()` | wrong allocation above it |
 | Rows with MPI | 32,767 guaranteed by the MPI standard; Open MPI allows ~2^31 | row number used as MPI message tag | only matters for other MPI implementations |
-| Zone codes (subbasin grid) | 0 … 32,766 (manual: up to 32,768) | `maxzonenwert`, `modconst.h` | code 32767 writes out of bounds |
-| Number of distinct zones | 15,999 (manual: 16,000) | `maxzonenzahl`, `modconst.h` | 16,000 zones write out of bounds |
+| Zone codes (subbasin grid) | 0 … 32,767 (manual: up to 32,768) | `maxzonenwert`, `modconst.h` | **fixed** (was: code 32767 wrote out of bounds) |
+| Number of distinct zones | 16,000 | `maxzonenzahl`, `modconst.h` | **fixed** (was: 16,000 zones wrote out of bounds) |
 | Number of regions (regression interpolation) | 30 | `_max_regionen_zahl_` | checked |
 | Grids held in memory | 1,000 | `gridmaxanzahl` | checked |
 | Memory on MPI rank 0 | at least 1–2 full grids (8 bytes/cell each) during output | full-grid gather in `MPIGatherIntoNewGrid`, plus netCDF flat buffer | practical limit |
