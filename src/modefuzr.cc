@@ -4718,7 +4718,7 @@ Codes :
 				if (strrchr(vegName,dirzeichen)!=NULL)
 				strcpy(tempstr,strrchr(vegName,dirzeichen)+1); else strcpy(tempstr,vegName);
 				dateiname = new char[_stringsize_];
-				if ( index(tempstr,".")==0) sprintf(tempstr,"%s.",tempstr);
+				if ( index(tempstr,".")==0) sprintf(tempstr + strlen(tempstr), ".");
 				p = index(tempstr,".");
 				//        if ( index(tempstr,".") < 4 ) p = index(tempstr,"."); else p=4;
 				if (vegWritegrid == 2)
@@ -4790,7 +4790,7 @@ Codes :
 			{
 				strcpy(dateiname,name);
 			} else if ((writegrid==2)||(writegrid==5)||(writegrid==6)||(writegrid==7))	{
-				if ( index(tempstr,".")==0) sprintf(tempstr,"%s%s",tempstr,".");
+				if ( index(tempstr,".")==0) sprintf(tempstr + strlen(tempstr), "%s", ".");
 				p = index(tempstr,".");
 				//        if ( index(tempstr,".") < 4 ) p = index(tempstr,"."); else p=4;
 
@@ -4873,7 +4873,7 @@ Codes :
 			if (strrchr(minname,dirzeichen)!=NULL)
 			strcpy(tempstr,strrchr(minname,dirzeichen)+1); else strcpy(tempstr,minname);
 			dateiname = newstring(strlen(minname)+20,1);
-			if ( index(tempstr,".")==0) sprintf(tempstr,"%s.",tempstr);
+			if ( index(tempstr,".")==0) sprintf(tempstr + strlen(tempstr), ".");
 			sprintf(dateiname,"%.*s.min",index(tempstr,"."),tempstr); /* Summengrids fuer ges.Zeit enden auf "xxxxyyyy.sum" */
 			/* Pfad wird wieder angehaengt */
 			if (strrchr(minname,dirzeichen)!=NULL)
@@ -4903,7 +4903,7 @@ Codes :
 			if (strrchr(maxname,dirzeichen)!=NULL)
 			strcpy(tempstr,strrchr(maxname,dirzeichen)+1); else strcpy(tempstr,maxname);
 			dateiname = newstring(strlen(maxname)+20,1);
-			if ( index(tempstr,".")==0) sprintf(tempstr,"%s.",tempstr);
+			if ( index(tempstr,".")==0) sprintf(tempstr + strlen(tempstr), ".");
 			sprintf(dateiname,"%.*s.max",index(tempstr,"."),tempstr); /* Summengrids fuer ges.Zeit enden auf "xxxxyyyy.sum" */
 			/* Pfad wird wieder angehaengt */
 			if (strrchr(maxname,dirzeichen)!=NULL)
@@ -4947,7 +4947,7 @@ Codes :
 			if (strrchr(summenname,dirzeichen)!=NULL)
 			strcpy(tempstr,strrchr(summenname,dirzeichen)+1); else strcpy(tempstr,summenname);
 			dateiname = newstring(strlen(summenname)+20,1);
-			if ( index(tempstr,".")==0) sprintf(tempstr,"%s.",tempstr);
+			if ( index(tempstr,".")==0) sprintf(tempstr + strlen(tempstr), ".");
 			p = index(tempstr,".");
 			if (summenwritegrid == 1)
 			sprintf(dateiname,"%.*s.sum",p,tempstr); /* Summengrids fuer ges.Zeit enden auf "xxxxyyyy.sum" */
@@ -5006,7 +5006,7 @@ Codes :
 				if (strrchr(summenname,dirzeichen)!=NULL)
 				strcpy(tempstr,strrchr(summenname,dirzeichen)+1); else strcpy(tempstr,summenname);
 				dateiname = newstring(strlen(summenname)+20,1);
-				if ( index(tempstr,".")==0) sprintf(tempstr,"%s.",tempstr);
+				if ( index(tempstr,".")==0) sprintf(tempstr + strlen(tempstr), ".");
 				p = index(tempstr,".");
 				//        if ( index(tempstr,".") < 4 ) p = index(tempstr,"."); else p=4;
 				if (summenwritegrid == 2)
@@ -5067,7 +5067,7 @@ Codes :
 					if (strrchr(summenname,dirzeichen)!=NULL)
 						strcpy(tempstr,strrchr(summenname,dirzeichen)+1); else strcpy(tempstr,summenname);
 					dateiname = newstring(strlen(summenname)+20,1);
-					if ( index(tempstr,".")==0) sprintf(tempstr,"%s.",tempstr);
+					if ( index(tempstr,".")==0) sprintf(tempstr + strlen(tempstr), ".");
 					p = index(tempstr,".");
 					//          if ( index(tempstr,".") < 4 ) p = index(tempstr,"."); else p=4;
 					if (summenwritegrid == 3)
@@ -5132,7 +5132,7 @@ Codes :
 						if (strrchr(summenname,dirzeichen)!=NULL)
 							strcpy(tempstr,strrchr(summenname,dirzeichen)+1); else strcpy(tempstr,summenname);
 						dateiname = newstring(strlen(summenname)+20,1);
-						if ( index(tempstr,".")==0) sprintf(tempstr,"%s.",tempstr);
+						if ( index(tempstr,".")==0) sprintf(tempstr + strlen(tempstr), ".");
 						p = index(tempstr,".");
 						//            if ( index(tempstr,".") < 4 ) p = index(tempstr,"."); else p=4;
 						if (summenwritegrid == 4)
@@ -6123,7 +6123,7 @@ void modelobject::writestacktofile(int idx)
 		}
 		else if ((writestack==2)||(writestack==5))
 		{
-			if ( index(tempstr,".")==0) sprintf(tempstr,"%s%s",tempstr,".");
+			if ( index(tempstr,".")==0) sprintf(tempstr + strlen(tempstr), "%s", ".");
 			if ( index(tempstr,".") < 4 ) p = index(tempstr,"."); else p=4;
 
 // New:		// the first call will always jump over this if statement since lastYear, lastMonth, lastDay and lastHour are always set to 0 during initialization of the gridinfo array

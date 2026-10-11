@@ -9597,7 +9597,7 @@ void defaultini::MakeHRUs(int &doSpinUp,int &doTemperaturePreSpinUp,int &repeatC
 								<<"[end-entry]";
 							throw(1031);
 						}
-						sprintf(cID,"%s%04.0lf'",cID,transformedValue);
+						sprintf(cID + strlen(cID), "%04.0lf'", transformedValue);
 					}
 				}
 				// try to add the sID to the Map

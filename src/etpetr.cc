@@ -945,31 +945,31 @@ do_ArcVeg(0),ARCVEGFRACTIONS(NULL), arcVegNumLayers(0)
 
 			if (methode==1)
 			{ 
-				sprintf(layername,"%s%s",layername,"(Penman/Monteith)_");
+				sprintf(layername + strlen(layername), "%s", "(Penman/Monteith)_");
 				ETPstat[lay]->schreibzonenwerte(layername,instanzname,LastResults,maxLastResults); 
 			}
 			else
 			{
 				if (methode==2)
 				{ 
-					sprintf(layername,"%s%s",layername,"(HAMON)_");
+					sprintf(layername + strlen(layername), "%s", "(HAMON)_");
 					ETPstat[lay]->schreibzonenwerte(layername,instanzname,LastResults,maxLastResults); 
 				}
 				else
 				if (methode==3)
 				{ 
-					sprintf(layername,"%s%s",layername,"(WENDLING)_");
+					sprintf(layername + strlen(layername), "%s", "(WENDLING)_");
 					ETPstat[lay]->schreibzonenwerte(layername,instanzname,LastResults,maxLastResults); 
 				}
 				else
 				if (methode==4)
 				{ 
-					sprintf(layername,"%s%s",layername,"(HAUDE)_");
+					sprintf(layername + strlen(layername), "%s", "(HAUDE)_");
 					ETPstat[lay]->schreibzonenwerte(layername,instanzname,LastResults,maxLastResults); 
 				}
 				else
 				{ 
-					sprintf(layername,"%s%s",layername,"(unknown_method)_");
+					sprintf(layername + strlen(layername), "%s", "(unknown_method)_");
 					ETPstat[lay]->schreibzonenwerte(layername,instanzname,LastResults,maxLastResults); 
 				}
 			}

@@ -3691,8 +3691,8 @@ xmin(p_xll),ymin(p_yll),xmax(p_xll+ p_cellsize *(p_ncols+1)),ymax(p_yll+ p_cells
 		else if (methode == 2) {
 			sprintf(meteosatz, "%s interpolated with regression from ", instanzname);
 			for (i = 1; i <= regiomax; i++)
-				sprintf(meteosatz, "%s %s,", meteosatz, dateinamekoef[i]);
-			sprintf(meteosatz, "%s zones from %s, control file: %s", meteosatz, gridinfo[1].name, steuername);
+				sprintf(meteosatz + strlen(meteosatz), " %s,", dateinamekoef[i]);
+			sprintf(meteosatz + strlen(meteosatz), " zones from %s, control file: %s", gridinfo[1].name, steuername);
 		}
 		else if (methode == 3) {
 			sprintf(meteosatz, "%s interpolated with idw+regression from %s, zones from %s,weighting = %4.1f, fraction distance: = %4.1f max distance = %8.0f, control file %s, additional columns: %d",
