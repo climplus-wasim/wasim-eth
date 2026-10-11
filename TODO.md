@@ -39,13 +39,13 @@ Experiments that should not go onto branches of the main repo (e.g. due to data 
   - The routine that fills zone codes for missing codes appears three times with an ambiguous `else` (`siltingup.cc:257`, `snowmod.cc:395`, `unsatzon.cc:930`): the `else` binds to the inner `if`, but in `unsatzon.cc` it is indented as if it belonged to the outer one. Check which is intended.
 - [ ] consider building a friendly entrypoint printing a friendly/formatted message when calling with `-h` or `--help` or without arguments.
   - [ ] Do not start MPI or OMP processes before parsing the flags, if possible.
-- [ ] convert to a consistent utf-8, LF format
+- [x] convert to a consistent utf-8, LF format: all sources UTF-8 (13 files were Latin-1), LF was already used everywhere; `.editorconfig` added. The commit is listed in `.git-blame-ignore-revs` (`git config blame.ignoreRevsFile .git-blame-ignore-revs`).
 - [ ] check for low-hanging performance fruit (profile of the Rhone sample, hourly, 1 thread: Richards zone 60%, of which the van Genuchten table lookups `h_calc`, `get_theta`, `k_calc` 36%; IDW interpolation 11%; snow 6%; I/O about 5%)
   - [x] link-time optimization (`-flto`): 3% faster, identical results
   - [ ] the parallel loops use `schedule(runtime)` and the default static schedule leaves threads idle: `OMP_SCHEDULE=dynamic,4` made a 10-day January run 27% faster on 4 threads, but a full hourly year ran about twice as slow as with the static schedule (still to be understood, possibly through the convergence of the groundwater iteration; see below). Measure per module before changing the default.
   - [ ] IDW recomputes all station distances (`sqrt`, power) for every cell and time step; weights only change when stations have missing values, so they could be cached per cell (memory: cells x stations)
   - [ ] the Richards loop allocates about 30 scratch arrays per grid row and time step (`unsatzon.cc:8130ff`); allocate once per thread
-- [ ] autoformat using clang-format?
+- [ ] autoformat using clang-format? A proposed `.clang-format` close to the current style (tabs, braces on their own line) is in the repository root. Applied to all sources it would change about 40,000 of 91,000 lines, burying `git blame` and conflicting with any upstream change. Suggestion: format only changed lines (`git clang-format` before committing), and reformat whole files only when a module is rewritten.
 
 ## Unit/integration tests
 
