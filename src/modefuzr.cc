@@ -284,7 +284,7 @@ void zonalstatistic::calc_and_done(long jahr,long monat,long tag,long stunde,lon
 				MPI_Type_free(&zonevectortype);
 
 			} else if (gathermethod==3) {
-				// Version ohne Reduce, aber mit send/Recv Funktion für Summenbildung, alle Zonen zusammen in langen Speicherblöcken
+				// Version ohne Reduce, aber mit send/Recv Funktion fÃ¼r Summenbildung, alle Zonen zusammen in langen SpeicherblÃ¶cken
 				double *n1,*sx1,*relcellsum1;
 				double *ntot,*sxtot,*relcellsumtot;
 
@@ -350,7 +350,7 @@ void zonalstatistic::calc_and_done(long jahr,long monat,long tag,long stunde,lon
 				delete[] sxtot;
 				delete[] relcellsumtot;
 			} else if (gathermethod==4) {
-				// Version ohne Reduce, aber mit send/Recv Funktion für Summenbildung, alle Zonen zusammen in langen Speicherblöcken
+				// Version ohne Reduce, aber mit send/Recv Funktion fÃ¼r Summenbildung, alle Zonen zusammen in langen SpeicherblÃ¶cken
 				double *n1,*sx1,*relcellsum1;
 				double *ntot,*sxtot,*relcellsumtot;
 
@@ -711,7 +711,7 @@ zonestat(0),mittelwert(0),cnt(0),gesamtsumme(0),zarray(0),useMinutes(false)
 			gesamtsumme = 0.0;  /* Summe der pro Intervall errechneten Gebietsmittelwerte fuer cnt Intervalle */
 			cnt         = 0;    /* haelt die Anzahl der abgelaufenen Intervalle zur Mittelbildung fest */
 			this->useMinutes = useMinutes;
-			// construct filename when a default output dîr was given
+			// construct filename when a default output dÃ®r was given
 			if (DefaultOutputDirectory)
 			{
 				bool bIsComplete=false;
@@ -4421,8 +4421,8 @@ void modelobject::printsummengridfile(char *dateiname, double **grid, bool bText
 void modelobject::writegridtofile(int idx, int gather, bool doNotPrintAverageYet)
 /* schreibt ein durch **gridinfo[idx].pointer adressiertes Grid aus dem Speicher auf die Disk
 Codes :
-1000er Stelle: 1 = ein Summengrid über die Dauer der Vegetationsperiode wird gechrieben
-				2 = ein Mittelwertgrid über die Dauer der Vegetationsperiode wird gechrieben
+1000er Stelle: 1 = ein Summengrid Ã¼ber die Dauer der Vegetationsperiode wird gechrieben
+				2 = ein Mittelwertgrid Ã¼ber die Dauer der Vegetationsperiode wird gechrieben
 	100er Stelle: 1 = ein Minimumgrid wird geschrieben
 				2 = ein Maximumgrid wird geschrieben
 				3 = Minumum- und Maximumgrids werden geschrieben
@@ -4435,7 +4435,7 @@ Codes :
 				6 = es wird jedes Jahr ein Durchschnittsgrid geschrieben
 				7 = es wird jeden Monat ein Durchschnitssgrid geschrieben
 				8 = es wird fuer jeden Tag ein Durchschnitssgrid geschrieben
-	1er Stelle:  (gilt für die aktuellen Werte der Groessen, also keine Summen oder Durchschnittswerte!)
+	1er Stelle:  (gilt fÃ¼r die aktuellen Werte der Groessen, also keine Summen oder Durchschnittswerte!)
 				1 = schreiben nach jedem Intervall in dasselbe Grid
 				2 = immer ein neues Grid pro Intervall (Name: "<%.4s>%02d%02d.%02d",name,monat,tag,stunde)
 				3 = nur das letzte Grid des Modellaufes wird geschrieben
@@ -4443,7 +4443,7 @@ Codes :
 				5 = immer zu 24 Uhr wird ein neues Grid geschrieben         
 				6 = am Monatsende
 				7 = am Jahresende
-				8 = dieses Grid wird nach dem Einlesen sofort rausgeschrieben, so dass man ein gefülltest Grid ausgegeben erhält und nicht die Lücken manuell füllen muss.
+				8 = dieses Grid wird nach dem Einlesen sofort rausgeschrieben, so dass man ein gefÃ¼lltest Grid ausgegeben erhÃ¤lt und nicht die LÃ¼cken manuell fÃ¼llen muss.
 				*/
 {
 	if ((idx>gridmaxanzahl)||(idx<1)) return;
@@ -6435,7 +6435,7 @@ int modelobject::getindex(const char *name)
 }
 
 int modelobject::getindex_first_of_3(const char *name1,const char *name2,const char *name3)
-/* Liefert den Index im gridinfo-Array zurueck, an dem der name1 auftaucht (im Feld identifîcation), wenn es ihn gibt;
+/* Liefert den Index im gridinfo-Array zurueck, an dem der name1 auftaucht (im Feld identifÃ®cation), wenn es ihn gibt;
 ansonsten wird, wenn name2 != "", das erste Auftreten von name2, so es existiert, geliefert, wenn name2 auch
 nicht im gridinfo[x].identification auftaucht, dann wird dasselbe mit name3 versucht. Gibt es keinen der drei
 Namen im gridinfo-array, dann gibt es eine Fehlermeldung. */
@@ -6478,7 +6478,7 @@ Namen im gridinfo-array, dann gibt es eine Fehlermeldung. */
 }
 
 int modelobject::getindex_first_of_4(const char *name1,const char *name2,const char *name3,const char *name4)
-/* Liefert den Index im gridinfo-Array zurueck, an dem der name1 auftaucht (im Feld identifîcation), wenn es ihn gibt;
+/* Liefert den Index im gridinfo-Array zurueck, an dem der name1 auftaucht (im Feld identifÃ®cation), wenn es ihn gibt;
 ansonsten wird, wenn name2 != "", das erste Auftreten von name2, so es existiert, geliefert, wenn name2 auch
 nicht im gridinfo[x].identification auftaucht, dann wird dasselbe mit name3 versucht. Gibt es keinen der drei
 Namen im gridinfo-array, dann gibt es eine Fehlermeldung. */
