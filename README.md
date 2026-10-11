@@ -4,7 +4,13 @@ This repository contains the sources of the hydrologic model system WaSiM-ETH (W
 
 The model description (manual) is in [docs/wasim_2025_en.pdf](docs/wasim_2025_en.pdf), also available from https://www.wasim.ch/downloads/doku/wasim/wasim_2025_en.pdf.
 
-In /docs, a readme can be found how to compile and run the model on RHEL 9. An annotated sample control file, with references to the manual, is in [docs/sample_control_file.wasim](docs/sample_control_file.wasim). Known limits on model domain size are described in [docs/domain-size-limits.md](docs/domain-size-limits.md), and known problems are listed in [TODO.md](TODO.md).
+Further documentation in [docs/](docs/):
+
+- [sample_control_file.wasim](docs/sample_control_file.wasim): annotated sample control file with references to the manual
+- [domain-size-limits.md](docs/domain-size-limits.md): limits on model domain size and memory
+- [glossary.md](docs/glossary.md): German terms and abbreviations used in the code and file names
+
+Known problems and planned work are listed in [TODO.md](TODO.md). Golden (regression) tests are described in [tests/golden/README.md](tests/golden/README.md).
 
 ## Dependencies
 
@@ -30,21 +36,43 @@ Package names for common systems:
 
 ## Compiling
 
-The makefiles are in `src`, one per platform, e.g.:
+`src/Makefile` builds on Linux and macOS:
 
     cd src
-    make -f makefile_rhel9_openmpi
+    make                  # OpenMP build      -> src/wasim
+    make MPI=1            # MPI + OpenMP      -> src/wasim-mpi
+    make NCXX=system      # use the system netCDF C++ library (ncxx4-config) instead of the bundled copy
+    make help             # all options
 
-`make clean` in `src` removes the build products of any of the makefiles.
+The default build is portable. `make ARCH=-march=native` tunes it for the build machine, but this changes results slightly (fused multiply-add), so golden tests then need a looser tolerance. Objects go to `src/build/`, and `make clean` removes them along with the products of the older makefiles.
 
-The Linux makefiles expect the netCDF C++ sources in `src/netcdfcpp`; copy or symlink `netcdfcpp_Linux` to that name first (`ln -s netcdfcpp_Linux netcdfcpp`).
+The per-distribution makefiles (`src/makefile_*`) are kept for now but superseded. If you still use them on Linux, note that they expect the netCDF C++ sources in `src/netcdfcpp` (`ln -s netcdfcpp_Linux netcdfcpp`) and list two source files that no longer exist (see TODO.md).
 
-### macOS
+On macOS, install `netcdf libomp` (and `open-mpi` for MPI) with Homebrew; the Makefile finds them via `brew --prefix`. `src/makefile_macos` does the same and is kept for compatibility.
 
-`src/makefile_macos` works on Apple Silicon and Intel Macs with Apple clang and Homebrew:
+## Running
 
-    cd src
-    make -f makefile_macos          # OpenMP + MPI (needs open-mpi)
-    make -f makefile_macos MPI=0    # OpenMP only
+    src/wasim path/to/control_file
 
-By default the binary is tuned for the build machine's CPU family; pass `ARCHFLAGS=` for a portable build. Homebrew paths are found via `brew --prefix`; they can be overridden with `NETCDF=...` and `LIBOMP=...`. To use Homebrew GCC instead of Apple clang, pass e.g. `CXX=g++-15 OMPFLAGS=-fopenmp OMPLIBS=-fopenmp MPI=0`.
+WaSiM writes a translated copy of the control file (`<control file>.intern`), some routing tables to the current directory, and all other output to the `DefaultOutputDirectory` given in the control file. Use absolute paths for the output directory: with a relative one, statistics files of multi-layer land use end up in a doubled path (see TODO.md).
+
+### Threads (OpenMP)
+
+`OMP_NUM_THREADS` sets the number of threads. The parallel loops use the runtime schedule, so `OMP_SCHEDULE` applies to them. The default static schedule leaves threads idle when grid rows differ in work. `OMP_SCHEDULE=dynamic,4` made a 10-day winter run of the Rhone sample 27% faster on 4 threads, but a full year about twice as slow, so keep the default until this is understood (see TODO.md).
+
+Results are bit-reproducible only with one thread. With several threads, a few cells differ between runs (see TODO.md).
+
+### MPI
+
+The MPI build splits the active cells of the domain into one region per process (rank), so a model can use several nodes. Rank 0 reads the input grids, gathers results for output and does the river routing. Each rank can additionally use OpenMP threads.
+
+    OMP_NUM_THREADS=1 mpirun -n 4 src/wasim-mpi path/to/control_file      # srun on Slurm clusters such as Euler
+
+- **When it helps:** for single runs that are too slow on one node. For ensembles (e.g. calibration), many independent single-node runs use the cores better: for the Doubs sample, 4 ranks gave a 2.2× speedup.
+- **Memory:** rank 0 still needs the whole domain in memory; the other ranks need only their share plus about 110 MB.
+- **Reproducibility:** at start-up each rank times a short benchmark, and faster ranks get more cells, so the decomposition can change between runs. A file `MpiSpeedFactor.dat` in the working directory, holding one number (the benchmark time, identical for all ranks), skips the benchmark and fixes the split.
+- **Not available with MPI:** re-infiltration from rivers into groundwater (manual 2.1, p. 18).
+
+### Debugging
+
+Build with `make DEBUG=1` (`-O0 -g`, not stripped) and run under `gdb` or the VS Code C++ debugger with the control file as program argument. Use `OMP_NUM_THREADS=1` while debugging.
