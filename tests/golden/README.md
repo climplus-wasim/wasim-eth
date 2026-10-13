@@ -6,10 +6,10 @@ The setups and case definitions are too large for this repository. They live in 
 
 | Case | Setup archive | Period | Active cells | Run time, 1 thread |
 | --- | --- | --- | --- | --- |
-| doubs | `sample-run-doubs.zip` (upload pending) | 2021-01-01 to 01-11, hourly | 6,022 | about 20 s |
+| doubs | `sample-run-doubs.zip` | 2021-01-01 to 01-11, hourly | 6,022 | about 20 s |
 | rhone | `sample-run-rhone.zip` | 2021-01-01 to 01-11, hourly | 21,584 | about 50 s |
 
-Each case has a control file template (`golden/<case>/control.wasim.in`) with path placeholders; its header says how it differs from the original setup. `golden/README.md` there explains how the reference outputs are made (single-threaded, from commit `a9b28ae`).
+Each case has a control file template (`golden/<case>/control.wasim.in`) with path placeholders; its header says how it differs from the original setup. The reference outputs are in `golden/<case>/reference.zip`; `golden/README.md` there says how they were made (single-threaded, from commit `a9b28ae`).
 
 ## Running
 
@@ -17,6 +17,7 @@ Each case has a control file template (`golden/<case>/control.wasim.in`) with pa
 # in a checkout of wasim-forclim-evoland-experiments
 unzip sample-run-rhone.zip -d cases/
 python3 golden/rhone/merge_station_files.py cases/sample-run-rhone
+unzip golden/rhone/reference.zip -d golden/rhone
 
 # run the candidate binary
 python3 tests/golden/run_case.py --binary src/wasim \

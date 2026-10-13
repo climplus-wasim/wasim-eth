@@ -8,7 +8,8 @@
 #   make clean                remove build products (also those of the legacy makefile_* files)
 #
 # Requirements: a C++11 compiler with OpenMP, netCDF-C (nc-config), for MPI=1 an MPI compiler wrapper (mpicxx).
-# On macOS: Apple clang + Homebrew (brew install netcdf libomp [open-mpi] [netcdf-cxx]).
+# On macOS: Homebrew (brew install netcdf llvm [open-mpi] [netcdf-cxx]); uses Homebrew's LLVM clang if installed,
+# otherwise (or with APPLE_CLANG=1) Apple clang with brew install libomp.
 # Variables can be overridden on the command line, e.g. make CXX=g++-14 MPICXX=mpiicpc NETCDF_LIBS=...
 
 MPI   ?= 0
@@ -20,14 +21,29 @@ OS    := $(shell uname -s)
 # --- compiler and OpenMP -------------------------------------------------------------------------
 ifeq ($(OS),Darwin)
   PLATFORM_DEF = -D MACOS64
-  BREW   ?= $(shell brew --prefix 2>/dev/null || echo /opt/homebrew)
-  LIBOMP ?= $(shell brew --prefix libomp 2>/dev/null || echo $(BREW)/opt/libomp)
-  ifeq ($(origin CXX),default)
-    CXX = clang++
+  BREW ?= $(shell brew --prefix 2>/dev/null || echo /opt/homebrew)
+  # Default: Homebrew's LLVM clang, which ships its own OpenMP runtime, so the flags are the same
+  # as for clang on Linux. Without it (or with APPLE_CLANG=1): Apple clang + Homebrew libomp.
+  LLVM ?= $(shell brew --prefix llvm 2>/dev/null || echo $(BREW)/opt/llvm)
+  APPLE_CLANG ?= $(if $(wildcard $(LLVM)/bin/clang++),0,1)
+  ifeq ($(APPLE_CLANG),0)
+    ifeq ($(origin CXX),default)
+      CXX = $(LLVM)/bin/clang++
+      CXXTAG = brew-llvm
+    endif
+    OMPFLAGS ?= -fopenmp
+    # use LLVM's libomp and libc++ at run time, not the system's (see `brew info llvm`)
+    OMPLIBS  ?= -fopenmp -L$(LLVM)/lib -Wl,-rpath,$(LLVM)/lib -L$(LLVM)/lib/c++ -Wl,-rpath,$(LLVM)/lib/c++
+  else
+    LIBOMP ?= $(shell brew --prefix libomp 2>/dev/null || echo $(BREW)/opt/libomp)
+    ifeq ($(origin CXX),default)
+      CXX = clang++
+      CXXTAG = apple-clang
+    endif
+    # Apple clang has no OpenMP runtime of its own
+    OMPFLAGS ?= -Xpreprocessor -fopenmp -I$(LIBOMP)/include
+    OMPLIBS  ?= -L$(LIBOMP)/lib -lomp
   endif
-  # Apple clang has no OpenMP runtime of its own
-  OMPFLAGS ?= -Xpreprocessor -fopenmp -I$(LIBOMP)/include
-  OMPLIBS  ?= -L$(LIBOMP)/lib -lomp
 else
   PLATFORM_DEF = -D LINUX64
   ifeq ($(origin CXX),default)
@@ -86,7 +102,8 @@ SRC = abfluss.cc cspline.cc dataassim.cc defltuzr.cc etpetr.cc expokorr.cc gifre
       snow_canopy.cc snowmod.cc stringp.cc surfrout.cc teilmod.cc unsatzon.cc wasimuzr.cc wsstream.cc \
       $(NCXX_SRC)
 
-BUILDDIR = build/$(VARIANT)-$(NCXX)-$(notdir $(firstword $(CXX)))
+CXXTAG  ?= $(notdir $(firstword $(CXX)))
+BUILDDIR = build/$(VARIANT)-$(NCXX)-$(CXXTAG)
 OBJ      = $(SRC:%.cc=$(BUILDDIR)/%.o)
 DEP      = $(OBJ:.o=.d)
 

@@ -32,7 +32,7 @@ Package names for common systems:
 | RHEL / CentOS | `gcc-c++ make netcdf-devel` (EPEL), optional `openmpi-devel` |
 | Ubuntu / Debian | `g++ make libnetcdf-dev`, optional `libopenmpi-dev openmpi-bin` |
 | openSUSE | `gcc-c++ make netcdf-devel`, optional `openmpi4-devel` |
-| macOS (Homebrew) | `xcode-select --install`, then `brew install netcdf libomp`, optional `brew install open-mpi` |
+| macOS (Homebrew) | `xcode-select --install`, then `brew install netcdf llvm` (or `libomp` for Apple clang), optional `brew install open-mpi` |
 
 ## Compiling
 
@@ -48,7 +48,7 @@ The default build is portable. `make ARCH=-march=native` tunes it for the build 
 
 The per-distribution makefiles (`src/makefile_*`) are kept for now but superseded. If you still use them on Linux, note that they expect the netCDF C++ sources in `src/netcdfcpp` (`ln -s netcdfcpp_Linux netcdfcpp`) and list two source files that no longer exist (see TODO.md).
 
-On macOS, install `netcdf libomp` (and `open-mpi` for MPI) with Homebrew; the Makefile finds them via `brew --prefix`. `src/makefile_macos` does the same and is kept for compatibility.
+On macOS, install `netcdf llvm` (and `open-mpi` for MPI) with Homebrew. The Makefile then builds with Homebrew's LLVM clang, which has OpenMP built in, like clang on Linux; with MPI=1, Open MPI's `mpicxx` is pointed at that compiler. Without `llvm`, or with `make APPLE_CLANG=1`, it uses Apple clang and needs `brew install libomp`. Paths come from `brew --prefix` and can be overridden (`LLVM=...`, `LIBOMP=...`). `src/makefile_macos` (Apple clang only) is kept for compatibility.
 
 ## Running
 
