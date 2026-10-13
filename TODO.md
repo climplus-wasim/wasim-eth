@@ -57,6 +57,7 @@ Experiments that should not go onto branches of the main repo (e.g. due to data 
   - [ ] input data formats (geotiff?)
 - [ ] suitable abstraction integration tests for any experiments to translate to `gt4py`...
   - [x] method used for the T-index snow prototype: a WaSiM run writes a process's inputs and outputs at every step, the port is driven by the same inputs and compared per step (wasim-forclim-evoland-experiments `gt4py/`)
+  - [x] grid dump hook `griddump` in `src/modapuzr.cc`: with `WASIM_DUMP_GRIDS` (grid names, comma-separated) and `WASIM_DUMP_DIR` set, named grids are written as raw float64 at fixed points of the time step (`start`, `after_meteo`, `after_etp`, `after_interception`, `after_snowevap`, `after_unsatzon`, …; `WASIM_DUMP_POINTS` restricts them; `identifications.txt` lists all grid names). This isolates one process even when other modules change the same grids in place. Inactive without the variables; golden tests unchanged. Used for the interception and snow evaporation ports (experiments repo `gt4py/coupling.md`).
 
 ## Domain size and limits
 
@@ -82,6 +83,8 @@ See [docs/domain-size-limits.md](docs/domain-size-limits.md) for details.
 - [ ] `-march=native` and `-march=haswell` (legacy Linux makefiles) change results through fused multiply-add, e.g. by up to 100 in a reservoir balance file of the Rhone sample; `-ffp-contract=off` would keep them reproducible across machines.
 - [x] Overlapping `sprintf` (`sprintf(x, "%s...", x, ...)`, undefined behaviour) in 19 places. With g++ at -O3 the netCDF file names became just `.nc`, so every netCDF grid output failed; clang builds happened to work. Fixed by appending with `sprintf(x + strlen(x), ...)`; g++ and clang builds now give results identical to the reference. `-Wrestrict` (g++) finds new cases.
 - [ ] MPI runs differ from serial runs, e.g. for Doubs on 2 ranks 0 instead of nodata in some grid cells and different balance grids (already before the changes above). Check whether the MPI output gathering writes nodata correctly.
+- [ ] Snow evaporation adds each cell's EVRS to the zonal statistics twice (`etpetr.cc`, `verdunstungsmodellklasse::snow`, once in each of its two cell loops), and reduces the potential transpiration per vegetation layer but not the layer total `pot_transpiration0` (interception reduces both).
+- [ ] `SOILtabletype::get_theta` reads `h_tab[layer][0]` for suctions <= 0, but `LookUpTableGeneration` never sets index 0 (uninitialized memory; the result is θs as long as it happens to be 0). `k_calc` searches the k table with `anz_h` instead of `anz_k` (harmless while both are 30).
 - [ ] MPI decomposition depends on a timing benchmark at start-up (`defltuzr.cc:8391ff`), so it can change between runs; `MpiSpeedFactor.dat` in the working directory fixes it. Document or replace with a deterministic default.
 
 ## Setup
