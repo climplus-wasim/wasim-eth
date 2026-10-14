@@ -87,6 +87,20 @@ See [docs/domain-size-limits.md](docs/domain-size-limits.md) for details.
 - [ ] `SOILtabletype::get_theta` reads `h_tab[layer][0]` for suctions <= 0, but `LookUpTableGeneration` never sets index 0 (uninitialized memory; the result is θs as long as it happens to be 0). `k_calc` searches the k table with `anz_h` instead of `anz_k` (harmless while both are 30).
 - [ ] MPI decomposition depends on a timing benchmark at start-up (`defltuzr.cc:8391ff`), so it can change between runs; `MpiSpeedFactor.dat` in the working directory fixes it. Document or replace with a deterministic default.
 
+## Found while porting to wasim-gt
+
+The ports reproduce these behaviours bit for bit. A fix changes results, so WaSiM and wasim-gt have to change together. Details: wasim-gt#19 (snow), wasim-gt#20 (meteo).
+
+- [ ] Snow, daily steps only (`InV > 720`), relevant for daily runs of the Swiss setup:
+  - `run1` calls `calc_Accu_and_Melt` twice, for the night and the day fraction. Each call applies the wind redistribution `P += DEPOINDEX * P_SNOW` to the input grid in place, so the second call redistributes the already redistributed precipitation (`snowmod.cc:2863`, `4282-4286`). For DEPOINDEX = 0.3 the factor approaches 1.3 * 1.3 instead of 1.3, also for the water passed on to the soil.
+  - In the sublimation case of the melt branch, `Mass_lat` is multiplied by `Anteil` twice (`snowmod.cc:3341`, `3410`), so sublimation shrinks with the square of the day or night fraction.
+- [ ] Snow, melt branch: only negative `Mass_lat` (sublimation) is taken from the snow; condensation on melting snow (positive `Mass_lat`) is dropped (`snowmod.cc:3423`). Intended?
+- [ ] Snow, refreezing branch: after the surface-temperature iteration the surface temperature can be limited (air - 13 K, or 0 degC), and only the latent heat flux is recomputed; refreezing still uses the energy balance of the unlimited temperature (`snowmod.cc:3087-3102`, `3186`).
+- [ ] Meteo: the regional regression is switched off in the constructor (`if ((1==2)&&(rarray))`, `meteoint.cc:3416`), so region and weight grids are read but ignored and one regression is fitted to all stations.
+- [ ] Meteo: the regression fit counts stations with `value > -missing`, IDW with `value >= -missing` (`meteoint.cc:1189` vs `1551`, `1649`).
+- [ ] Meteo, method 11: when all stations are missing, the old value is kept but `NewGrid` is not cleared, so scaling and clipping can be applied again (`meteoint.cc:3030-3065`; method 10 clears it at `2950`).
+- [ ] Meteo: the precipitation profile refit changes the vertical coefficients and the inversion boundary but keeps the raw residual-plane coefficients (`meteoint.cc:4496-4660`).
+
 ## Setup
 
 The setups we have inherited for the Swiss domain (hydrological Switzerland) are distributed across 17 basins, necessitating either a harness to run the catchments succesively and in concert, or a singular model that runs across the full domain.
