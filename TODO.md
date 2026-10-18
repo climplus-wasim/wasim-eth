@@ -97,6 +97,25 @@ See [docs/domain-size-limits.md](docs/domain-size-limits.md) for details.
 - [ ] Dynamic phenology: the MultipleStartTimes are initialised with the altitude shift of the fix points but reset at `JDReset_TStart` (and for DP3 on day 1) without it; the initialisation also uses the elevation model before the lake model lowers lake cells. The start of leaf fall and its cold-day counter (`StartDayOfLeaveFall`, level 0 of `TemperatureMOVAVG7`) are one grid per cell, shared by all vegetation layers.
 - [ ] MPI decomposition depends on a timing benchmark at start-up (`defltuzr.cc:8391ff`), so it can change between runs; `MpiSpeedFactor.dat` in the working directory fixes it. Document or replace with a deterministic default.
 
+## Found while porting to wasim-gt
+
+The ports reproduce these behaviours bit for bit. A fix changes results, so WaSiM and wasim-gt have to change together. Details: wasim-gt#19 (snow), wasim-gt#20 (meteo), wasim-gt#21 (permafrost), wasim-gt#23 (glacier).
+
+- [ ] Snow, daily steps only (`InV > 720`), relevant for daily runs of the Swiss setup:
+  - `run1` calls `calc_Accu_and_Melt` twice, for the night and the day fraction. Each call applies the wind redistribution `P += DEPOINDEX * P_SNOW` to the input grid in place, so the second call redistributes the already redistributed precipitation (`snowmod.cc:2863`, `4282-4286`). For DEPOINDEX = 0.3 the factor approaches 1.3 * 1.3 instead of 1.3, also for the water passed on to the soil.
+  - In the sublimation case of the melt branch, `Mass_lat` is multiplied by `Anteil` twice (`snowmod.cc:3341`, `3410`), so sublimation shrinks with the square of the day or night fraction.
+- [ ] Snow, melt branch: only negative `Mass_lat` (sublimation) is taken from the snow; condensation on melting snow (positive `Mass_lat`) is dropped (`snowmod.cc:3423`). Intended?
+- [ ] Snow, refreezing branch: after the surface-temperature iteration the surface temperature can be limited (air - 13 K, or 0 degC), and only the latent heat flux is recomputed; refreezing still uses the energy balance of the unlimited temperature (`snowmod.cc:3087-3102`, `3186`).
+- [ ] Permafrost: WaSiM stops with error 33 unless `SnowCoverDaysGrid` is given as a standard grid. When it creates the counter grids itself, the second check tests `_SnowFreeDaysGrid_` again instead of `_SnowCoverDaysGrid_` (`snowmod.cc:2548`), so after creating the snow-free grid it looks up a snow-cover grid that does not exist. The `[permafrost]` sections of the Doubs and Rhone setups and of `docs/sample_control_file.wasim` also have 3 entries, while snow and soil model read 5 (statistics file and reduced k_sat, `snowmod.cc:2587-2589`, `unsatzon.cc:1406-1410`).
+- [ ] Glacier: `Aice` and `Asnow` count the day of the year as `tag + (month-1) * mon[month]` (the loop adds `mon[(int)mt]` instead of `mon[i]`, `snowmod.cc:2660-2674`), so the seasonal sine of the radiation coefficients is shifted by up to a few days (1 July: day 187 instead of 182).
+- [ ] Glacier dynamics: `CreateNewGlacierCells` returns at once for every existing glacier (`if (glacierindexmap.find(id) != glacierindexmap.end()) return;`, `snowmod.cc:6548`), so glaciers never grow into new cells; for an unknown id the next line dereferences `end()`.
+- [ ] Glacier dynamics: `UpdateGlacierStatisticsZones` passes `isIce = false` to `addCell` (`snowmod.cc:6290`), so each glacier's elevation range is the elevation of its first cell and the elevation bands used for growing and shrinking collapse. Every added cell also extends the old area and volume again (`:6293-6306`).
+- [ ] Glacier dynamics: `elevationbelt::addChangesToMarginCells` subtracts the negative value of a cell that drops below 0 from the remaining change (`remainingChanges -= temp`, `snowmod.cc:7208`) instead of the part of the change it absorbed.
+- [ ] Meteo: the regional regression is switched off in the constructor (`if ((1==2)&&(rarray))`, `meteoint.cc:3416`), so region and weight grids are read but ignored and one regression is fitted to all stations.
+- [ ] Meteo: the regression fit counts stations with `value > -missing`, IDW with `value >= -missing` (`meteoint.cc:1189` vs `1551`, `1649`).
+- [ ] Meteo, method 11: when all stations are missing, the old value is kept but `NewGrid` is not cleared, so scaling and clipping can be applied again (`meteoint.cc:3030-3065`; method 10 clears it at `2950`).
+- [ ] Meteo: the precipitation profile refit changes the vertical coefficients and the inversion boundary but keeps the raw residual-plane coefficients (`meteoint.cc:4496-4660`).
+
 ## Setup
 
 The setups we have inherited for the Swiss domain (hydrological Switzerland) are distributed across 17 basins, necessitating either a harness to run the catchments succesively and in concert, or a singular model that runs across the full domain.
