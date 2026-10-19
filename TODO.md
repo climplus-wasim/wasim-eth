@@ -141,6 +141,11 @@ wasim-gt reproduces each of these bit for bit, so a fix changes results and WaSi
 
 - [ ] `SOILtabletype::get_theta` reads `h_tab[layer][0]` for suctions <= 0, but `LookUpTableGeneration` never sets index 0 (uninitialized memory; the result is θs as long as it happens to be 0). `k_calc` searches the k table with `anz_h` instead of `anz_k` (harmless while both are 30).
 
+### Unsaturated zone (wasim-gt#7)
+
+- [x] `hydraulic_heads_iterative` computes the old-state suction `h_temp1[k]` only in the first iteration (`z == 0`) and reuses it afterwards; the buffer is allocated per grid row. When the active depth grows in a later iteration, levels below the first iteration's depth are read from whatever the previous column of the row (or the row's initial zeros) left there (`unsatzon.cc:5239`, `5247`). In the Rhone 2021 year run this changes hydraulic heads in 11 cells on 14 days and 195 of 1213 output files (discharge at gauge 1 by up to 0.04 m³/s); reversing the column order within rows changes 214 output files, so the result depends on the processing order. Doubs 2021 and the golden runs never reach it. Fixed in this branch: levels the cell has not yet initialized in the current split are computed from its own `theta_sl_old`. The fix leaves the 10-day goldens unchanged and is order-independent (reversed column order: identical outputs).
+- [ ] A soil-call water budget built from the terms of the debug balance leaves a remainder equal to minus the reported `GWEX` in about 7,800 calls of the Rhone 2021 run (largest 0.115 mm), with and without the fix above. Not yet clear whether this is an accounting boundary of the budget or a real loss; needs a coupled soil–groundwater–river budget.
+
 ### Groundwater (wasim-gt#22)
 
 - [ ] The thickness of the first aquifer is overwritten with the total soil thickness at start-up (`gwflow.cc:568-584`).
