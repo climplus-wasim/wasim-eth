@@ -141,10 +141,6 @@ wasim-gt reproduces each of these bit for bit, so a fix changes results and WaSi
 
 - [ ] `SOILtabletype::get_theta` reads `h_tab[layer][0]` for suctions <= 0, but `LookUpTableGeneration` never sets index 0 (uninitialized memory; the result is θs as long as it happens to be 0). `k_calc` searches the k table with `anz_h` instead of `anz_k` (harmless while both are 30).
 
-### Unsaturated zone (Richards)
-
-- [ ] `flux_restrictions` and `flux_restrictions_opt` test `if (gwin[k] += qu_sl[k] >= 0)` (`unsatzon.cc:5916`, `5942`; `_loc` arrays at `6287`, `6313`): by precedence this adds `(qu_sl[k] >= 0)`, which is 0 there (the flux is negative), to `gwin[k]` and then tests `gwin[k]`, which is positive, so the first branch always runs and the infiltration from groundwater can become negative. Probably meant `gwin[k] + qu_sl[k] >= 0`. Only with groundwater coupling (`surface_interaction > 1`).
-
 ### Groundwater (wasim-gt#22)
 
 - [ ] The thickness of the first aquifer is overwritten with the total soil thickness at start-up (`gwflow.cc:568-584`).
@@ -153,6 +149,10 @@ wasim-gt reproduces each of these bit for bit, so a fix changes results and WaSi
 - [ ] Asymmetries: the x transmissivity tests `> upper + 0.01` for the cell itself but `>=` for its neighbour and in y (`gwflow.cc:1172`, `1194`, `1272`); the head update mixes neighbours in north, east, south, west order but sums the transmissivities as north, south, east, west (`1713-1725`).
 - [ ] Convergence is measured before the SOR step and divided by 5 in confined conditions (`gwflow.cc:1742-1782`).
 - [ ] The balance adds the fluxes to the old water content and subtracts it again instead of summing the fluxes, and leaves out fixed fluxes (`gwflow.cc:2483-2495`).
+
+### Unsaturated zone: flux restrictions
+
+- [ ] `flux_restrictions` and `flux_restrictions_opt` test `if (gwin[k] += qu_sl[k] >= 0)` (`unsatzon.cc:5916`, `5942`; `_loc` arrays at `6287`, `6313`): by precedence this adds `(qu_sl[k] >= 0)`, which is 0 there (the flux is negative), to `gwin[k]` and then tests `gwin[k]`, which is positive, so the first branch always runs and the infiltration from groundwater can become negative. Probably meant `gwin[k] + qu_sl[k] >= 0`. Only with groundwater coupling (`surface_interaction > 1`).
 
 ## Setup
 
