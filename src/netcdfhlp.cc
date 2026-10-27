@@ -82,11 +82,11 @@ void netcdfhlp::findFileNameFromGridName(char* filename, char* gridname, bool is
 	if (index<0)
 	{
 		if (isSumFile) {
-			sprintf(filename, "%s%s", filename, ".nc");
+			sprintf(filename + strlen(filename), "%s", ".nc");
 			//		sprintf(filename, "%s%s", filename, "_sum.nc");
 		}
 		else {
-			sprintf(filename, "%s%s", filename, ".nc");
+			sprintf(filename + strlen(filename), "%s", ".nc");
 		}
 	}
 	free(tmpname);
@@ -782,7 +782,7 @@ void netcdfReader::readTimestep(bool doublemode, double* &stackbufD, char* filen
 		}
 
 		double scale_factor = 1.;
-		int add_offset = 0;
+		double add_offset = 0;
 
 		// new C++ API
 		nc_cellsize = -1.0; // if found as attribute, it will be taken from there, otherwise it must be calculated from x and y coordinates, which is not working for one cell models. So it is recommended to put an attribute default_cellsize into the data layer
@@ -816,7 +816,7 @@ void netcdfReader::readTimestep(bool doublemode, double* &stackbufD, char* filen
 		
 		// getting yll and info on how rows and cols are stored
 		bool bottomup = true;
-		int *ybuf = new int[nc_rows];
+		double *ybuf = new double[nc_rows];
 		std::vector<size_t> vstart, vcount;
 		vstart.push_back(0);
 		vcount.push_back(nc_rows);
@@ -824,7 +824,7 @@ void netcdfReader::readTimestep(bool doublemode, double* &stackbufD, char* filen
 		varYDim = dataFile->getVar("y");
 		if (!varYDim.isNull()) {
 			varYDim.getVar(vstart, vcount, ybuf);
-			if (ybuf[1] < ybuf[0])
+			if ((nc_rows > 1) && (ybuf[1] < ybuf[0]))
 			{
 				bottomup = false;
 				nc_yll = ybuf[nc_rows - 1];
@@ -861,7 +861,7 @@ void netcdfReader::readTimestep(bool doublemode, double* &stackbufD, char* filen
 		vcount.clear();
 
 		// getting xll
-		int *xbuf = new int[nc_cols];
+		double *xbuf = new double[nc_cols];
 		vstart.push_back(0);
 		vcount.push_back(nc_cols);
 		NcVar varXDim;
@@ -877,7 +877,7 @@ void netcdfReader::readTimestep(bool doublemode, double* &stackbufD, char* filen
 
 		// Go to the correct timestep/layer and read the data
 		// new C++ API
-		stackbufD = new double[(nc_cols)*(nc_rows)];
+		stackbufD = new double[(size_t)nc_cols * nc_rows];
 		vstart.push_back(layer);
 		vstart.push_back(0);
 		vstart.push_back(0);
@@ -895,16 +895,16 @@ void netcdfReader::readTimestep(bool doublemode, double* &stackbufD, char* filen
 		if (data.getType() == netCDF::ncDouble)
 		{
 			data.getVar(vstart, vcount, stackbufD);
-			for (int ii = 0; ii < nc_cols*nc_rows; ++ii)
+			for (size_t ii = 0; ii < (size_t)nc_cols * nc_rows; ++ii)
 			{
 				stackbufD[ii] = stackbufD[ii] * scale_factor + add_offset;
 			}
 		}
 		else
 		{
-			float *stackbufF = new float[(nc_cols)*(nc_rows)];
+			float *stackbufF = new float[(size_t)nc_cols * nc_rows];
 			data.getVar(vstart, vcount, stackbufF);
-			for (int ii = 0; ii < nc_cols*nc_rows; ++ii)
+			for (size_t ii = 0; ii < (size_t)nc_cols * nc_rows; ++ii)
 			{
 				stackbufD[ii] = double(stackbufF[ii]) * scale_factor + add_offset;
 			}
@@ -913,14 +913,14 @@ void netcdfReader::readTimestep(bool doublemode, double* &stackbufD, char* filen
 
 		if (dim2.getName() == "x") 
 		{ // transposing rows and columns because x and y coordinates where not in x-y-order but in y-x-order
-			double *temp = new double[(nc_cols)*(nc_rows)];
-			memmove(temp, stackbufD, (nc_cols)*(nc_rows)*sizeof(double));
-			int counter = 0;
+			double *temp = new double[(size_t)nc_cols * nc_rows];
+			memmove(temp, stackbufD, (size_t)nc_cols * nc_rows * sizeof(double));
+			size_t counter = 0;
 			if (bottomup == true)
 			{
-				for (int i = nc_cols*(nc_rows - 1); i < nc_cols*nc_rows; i++)
+				for (long i = (long)nc_cols * (nc_rows - 1); i < (long)nc_cols * nc_rows; i++)
 				{
-					for (int j = i; j >= 0; j -= nc_cols)
+					for (long j = i; j >= 0; j -= nc_cols)
 					{
 						stackbufD[counter] = temp[j];
 						counter++;
@@ -931,7 +931,7 @@ void netcdfReader::readTimestep(bool doublemode, double* &stackbufD, char* filen
 			{
 				for (int i = 0; i < nc_cols; i++)
 				{
-					for (int j = i; j < nc_rows*nc_cols; j += nc_cols)
+					for (long j = i; j < (long)nc_rows * nc_cols; j += nc_cols)
 					{
 						stackbufD[counter] = temp[j];
 						counter++;
@@ -946,9 +946,9 @@ void netcdfReader::readTimestep(bool doublemode, double* &stackbufD, char* filen
 			{
 				if (bottomup == true)
 				{
-					double *temp = new double[(nc_cols)*(nc_rows)];
-					memmove(temp, stackbufD, (nc_cols)*(nc_rows)*sizeof(double));
-					int counter = 0;
+					double *temp = new double[(size_t)nc_cols * nc_rows];
+					memmove(temp, stackbufD, (size_t)nc_cols * nc_rows * sizeof(double));
+					size_t counter = 0;
 					for (int i = 0; i < nc_cols; i++)
 					{
 						for (int j = (i+1)*nc_rows-1; j >= i*nc_rows; j--)
