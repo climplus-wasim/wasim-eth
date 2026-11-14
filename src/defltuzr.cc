@@ -2966,7 +2966,10 @@ void defaultini::check_SOIL_Codes(int l)
 					flag = 0;
 					for (k = 1; k <= SOILtable[0].getCode(); k++)
 					{
-						if ((int)SOIL[i][j] == SOILtable[k].getCode()) flag = 1;
+						if ((int)SOIL[i][j] == SOILtable[k].getCode()) {
+							flag = 1;
+							break;
+						}
 					}
 					if (!flag)
 					{
@@ -3009,6 +3012,311 @@ void defaultini::check_SOIL_Codes(int l)
 	}
 	MPIScatterGrid(l);
 	MPISynchronizeGridHalo(l);
+}
+
+int defaultini::getUSDASoilTexture(double clay, double silt, double sand)
+{
+	const int CsiltyClay = 1;
+	const int Cclay = 2;
+	const int CsiltyClayLoam = 3;
+	const int CclayLoam = 4;
+	const int Csilt = 5;
+	const int CsiltLoam = 6;
+	const int CsandyClay= 7;
+	const int CLoam = 8;
+	const int CsandyClayLoam = 9;
+	const int CSandyLoam = 10;
+	const int CLoamySand=11;
+	const int CSand=12;
+
+	// implementing the USDA soil tetxure triangle
+
+	// convert fractions into percentages
+	clay *= 100.0; 
+	sand *= 100.0;
+	silt *= 100.0;
+
+	// uppermost part with clay above 40
+	if (clay >= 40.0) {
+		if (sand >= 45.0) {
+			return CsandyClay; // 7
+		}
+		if (silt >= 40.0) {
+			return CsiltyClay; // 1
+		}
+		return Cclay; // 2
+	}
+	// special case sandyClay above 35% clay
+	else if (clay >= 35.0 && sand >= 45.0) {
+		return CsandyClay; // 7
+	}
+	// medium clay range (27% tp 40% clay)
+	else if (clay >= 27.0 && clay < 40.0) {
+		if (sand >= 45.0)
+		{
+			return CsandyClayLoam; // 9
+		}
+		if (sand < 20.0)
+		{
+			return CsiltyClayLoam; // 3
+		}
+		return CclayLoam; // 4
+	}
+	// low clay range (20% to 27% clay)
+	else if (clay >= 20.0 && clay < 27.0) {
+		if (silt >= 50.0)
+		{
+			return CsiltLoam; // 6
+		}
+		if (silt < 28.0) {
+			return CsandyClayLoam; // 9
+		}
+		return CLoam; // 8
+	}
+	// minimum clay range (clay < 20.0)
+	else {
+		if (clay <= 12.0 && silt > 80.0 ) {
+			return Csilt; // 5
+		}
+		if (silt >= 50.0)
+		{
+			return CsiltLoam; // 6
+		}
+		if (clay >= 7.0 && sand <= 52.0) {
+			return CLoam; // 8
+		}
+
+		if (sand >= 85.0) {
+			if (silt + 1.5 * clay < 15.0) {
+				return CSand; // 12
+			}
+			return CLoamySand; // 11
+		}
+		else if (sand >= 70.0) {
+			if (silt + 2.0 * clay <= 30.0) {
+				return CLoamySand; // 11
+			}
+			return CSandyLoam; // 10
+		}
+		return CSandyLoam; // 10
+	}
+
+
+
+	return CsiltyClay;
+}
+
+void defaultini::makeSoilGridFromClaySiltSand(int l)
+{
+
+	// for testing the usda texture triangle method
+	// int res;
+	// res = getUSDASoilTexture(0.52, 0.06, 0.42); // expected 2
+	// res = getUSDASoilTexture(0.52, 0.01, 0.47); // expected 7
+	// res = getUSDASoilTexture(0.45, 0.50, 0.05); // expected 1
+	// res = getUSDASoilTexture(0.40, 0.10, 0.50); // expected 7
+	// res = getUSDASoilTexture(0.37, 0.30, 0.33); // expected 4
+	// res = getUSDASoilTexture(0.37, 0.55, 0.08); // expected 3
+	// res = getUSDASoilTexture(0.30, 0.10, 0.60); // expected 9
+	// res = getUSDASoilTexture(0.30, 0.30, 0.40); // expected 4
+	// res = getUSDASoilTexture(0.30, 0.60, 0.10); // expected 3
+	// res = getUSDASoilTexture(0.25, 0.20, 0.55); // expected 9
+	// res = getUSDASoilTexture(0.25, 0.40, 0.35); // expected 8
+	// res = getUSDASoilTexture(0.25, 0.60, 0.15); // expected 6
+	// res = getUSDASoilTexture(0.12, 0.02, 0.86); // expected 11
+	// res = getUSDASoilTexture(0.10, 0.08, 0.82); // expected 11
+	// res = getUSDASoilTexture(0.12, 0.10, 0.78); // expected 10
+	// res = getUSDASoilTexture(0.12, 0.40, 0.48); // expected 8
+	// res = getUSDASoilTexture(0.12, 0.60, 0.28); // expected 6
+	// res = getUSDASoilTexture(0.13, 0.84, 0.03); // expected 6
+	// res = getUSDASoilTexture(0.11, 0.84, 0.05); // expected 5
+	// res = getUSDASoilTexture(0.05, 0.05, 0.90); // expected 12
+	// res = getUSDASoilTexture(0.00, 0.12, 0.88); // expected 12
+	// res = getUSDASoilTexture(0.05, 0.15, 0.80); // expected 11
+	// res = getUSDASoilTexture(0.05, 0.25, 0.70); // expected 10
+	// res = getUSDASoilTexture(0.05, 0.45, 0.50); // expected 10
+	// res = getUSDASoilTexture(0.05, 0.55, 0.40); // expected 6
+	// res = getUSDASoilTexture(0.05, 0.85, 0.10); // expected 5
+
+	if (l == 0) return;
+
+	if (!(ist_vorhanden(_clayfraction_) && ist_vorhanden(_siltfraction_) && ist_vorhanden(_sandfraction_)))
+	{
+		(*WSstream) << "WARNING: no clay, sand and silt grids found, no soil types will be created fr the grain size fraction grids..." << "[end-entry]";
+		return;
+	}
+
+	if (mpi_rank == 0)
+	{
+
+		SOIL = gridinfo[l].pointer;
+
+		double** CLAY = gridinfo[getindex(_clayfraction_)].pointer;
+		double** SILT = gridinfo[getindex(_siltfraction_)].pointer;
+		double** SAND = gridinfo[getindex(_sandfraction_)].pointer;
+
+		double** TEMP = matrix(1, nrows, 1, ncols);
+
+		(*WSstream) << "analysing clay, sand and silt grids..." << "[end-entry]";
+
+		// using default values for shallow, medium and deept soils
+		double mindepth    = 0;
+		double mediumdepth = 0;
+		double maxdepth = 0;
+		int levels = SOILtable[1].getLevels();
+
+		// defaul shallow soils
+		double* depths = SOILtable[1].getDzui();
+		for (int k = 1; k <= levels; k++)
+		{
+			mindepth += depths[k];
+		}
+
+		// default medium soils
+		depths = SOILtable[2].getDzui();
+		for (int k = 1; k <= levels; k++)
+		{
+			mediumdepth += depths[k];
+		}
+
+		// default thick soils
+		depths = SOILtable[3].getDzui();
+		for (int k = 1; k <= levels; k++)
+		{
+			maxdepth += depths[k];
+		}
+
+		if ((mindepth * 1.2 >= mediumdepth) || (mediumdepth * 1.2 >= maxdepth))
+		{
+			(*WSstream) << "FATAL: \n-----------------------------------------------------------------------\n"
+				<< "Error: Depths of soil table entries must be at least differ by factor 1.2 between shallow, medium and thick soils. \n"
+				<< "the first three entries of the soil table must be a shallow, a medium and a thick soil, in this order. \n"
+				<< "The actual soil table doesn't fullfill this requirement:\n"
+				<< "Shallow soil (entry 1, "<< SOILtable[1].getName() <<") is " << mindepth << "m deep\n"
+				<< "Medium soil (entry 2, "<< SOILtable[2].getName() <<") is " << mediumdepth << "m deep\n"
+				<< "Thick soil (entry 3, "<< SOILtable[3].getName() <<") is " << maxdepth << "m deep\n"
+				<< "-----------------------------------------------------------------------\n\n" << "[end-entry]";
+			throw(1601);
+		}
+
+		for (int i = 1; i <= nrows; i++)
+		{
+			for (int j = 1; j <= ncols; j++)
+			{
+				if (zn[i][j] > nodata)
+				{
+					bool isvalidcell = false;
+					if ((CLAY[i][j] > nodata) && (SILT[i][j] > nodata) && (SAND[i][j] > nodata))
+					{
+						// we have a valid cell 
+						isvalidcell = true;
+					}
+					else
+					{
+						// todo:
+						// get nearest neighbors value here, if the  cell is not rock or water
+
+					}
+					if (isvalidcell)
+					{
+						double clay = CLAY[i][j];
+						double silt = SILT[i][j];
+						double sand = SAND[i][j];
+						double sum = clay + sand + silt;
+						int actsoiltype = (int)SOIL[i][j];
+
+						// estimating from the first 3 entries of the soil table if the actual soil is shallo, medium, or thick
+						double* actdepths = SOILtable[actsoiltype].getDzui();
+
+						double actThickness = 0;
+
+						for (int k = 1; k <= levels; k++)
+						{
+							actThickness += actdepths[k];
+						}
+
+						bool isShallow = false;
+						bool isMedium = false;
+						bool isThick = false;
+						int thicknessOffset = 1;
+						if (actThickness < 1.2 * mindepth) {
+							isShallow = true;
+						}
+						else if (actThickness < 1.2 * mediumdepth) {
+							isMedium = true;
+							thicknessOffset = 1;
+						}
+						else {
+							isThick = true;
+							thicknessOffset = 2;
+						}
+
+
+						if (sum <= 0)
+						{
+							(*WSstream) << "FATAL: \n-----------------------------------------------------------------------\n"
+								<< "at row " << i << ", column " << j << " the sum of clay, sand and silt is 0"
+								<< "-----------------------------------------------------------------------\n\n" << "[end-entry]";
+							throw(1600);
+						}
+						else
+						{
+							// normalizing weight of the fractions to 1.0
+							clay = clay / sum;
+							silt = silt / sum;
+							sand = sand / sum;
+								
+							// getting the Soiltype from the soil triangle (after US
+							int usdaSoil = getUSDASoilTexture(clay,silt,sand);
+							TEMP[i][j] = usdaSoil + thicknessOffset;
+							
+						}
+					}
+					else
+					{
+						TEMP[i][j] = SOIL[i][j];
+					}
+				}
+				else
+				{
+					TEMP[i][j] = nodata;
+				}
+			}
+		}
+
+		
+
+		// replacing soil types by the ones, computed before, but only for the non-nodata cells
+		(*WSstream) << "replacing default soil codes with the computed ones ..." << "[end-entry]";
+		for (int i = 1; i <= nrows; i++)
+		{
+			for (int j = 1; j <= ncols; j++)
+			{
+				if (TEMP[i][j] > nodata)
+				{
+					SOIL[i][j] = TEMP[i][j];
+				}
+				else
+				{
+					SOIL[i][j] = nodata;
+				}
+			}
+		}
+		free_matrix(TEMP, 1, nrows, 1, ncols);
+		TEMP = NULL;
+	}
+	
+	MPIScatterGrid(l);
+	MPISynchronizeGridHalo(l);
+
+	// writing the result grid to default output
+	if (mpi_rank == 0)
+	{
+		char *aktname = new char[500];
+		sprintf(aktname, "ComputedSoils_%d", mpi_rank);
+		printgridfile(aktname, SOIL, WriteASCIIGrids, WriteDoubleGrids, WriteNetcdfGrids);
+		delete[] aktname;
+	}
 }
 
 void defaultini::check_irrig_Codes(int l)
@@ -4977,6 +5285,9 @@ HRU(0),HRUMaster(0),hruindex(0),hrumasterindex(0), arcvegfractionsindex(0), arcv
 
 		check_SOIL_Codes(ist_vorhanden(_Bodenarten_)); /* nun ist auch SOIL ansprechbar, wenn es existiert (der Name _Boenarten_ eingelesen wurde) */
 
+		// either before or after check_SOIL_Codes, the new method for converting the clay-, sand- and silt grids into soil types must be placed.
+		makeSoilGridFromClaySiltSand(ist_vorhanden(_Bodenarten_));
+
 		/* Wenn nFK und/oder Na (auffuellbare Porosititaet) NICHT(!!!) als Standardgrids eingelesen wurden,
 		so werden nun diese Daten aus dem Bodenartengrid erzeugt, wenn es eingelesen wurde.
 		Wurde das Bodenartengrid nicht eingelesen und auch nFK und Na nicht, dann
@@ -5011,6 +5322,7 @@ HRU(0),HRUMaster(0),hruindex(0),hrumasterindex(0), arcvegfractionsindex(0), arcv
 		check_ice_firn_grid();
 
 		MakeRegionWeightGrids();
+
 
 
 		/* Lesen der variablen Grids, wenn Leseparameter==0, dann erzeugen von Albedo
@@ -5679,11 +5991,21 @@ int defaultini::Parameters(bool *state)
 		gibt es erst dann eine Fehlermeldung, wenn ein Teilmodell nFK oder Na benoetigt
 		und nicht findet. */
 		ParamsFunctionState++;
-		state=false;
+		state = false;
 		return ParamsFunctionState;
 		break;
 
 	case 17:
+		(*WSstream) << "make soil grid from clay, sand and silt..." << "[end-entry]";
+		makeSoilGridFromClaySiltSand(ist_vorhanden(_Bodenarten_));
+		(*WSstream) << "...ok" << "[end-entry]";
+
+		ParamsFunctionState++;
+		state = false;
+		return ParamsFunctionState;
+		break;
+
+	case 18:
 		if (version==1)
 		{
 			(*WSstream) << "make_nFK_kWert_and_Na..."<<"[end-entry]";
@@ -5695,7 +6017,7 @@ int defaultini::Parameters(bool *state)
 		return ParamsFunctionState;
 		break;
 
-	case 18:
+	case 19:
 		/* Ebenso koennen Exposition und Gefaelle aus dem Hoehenmodell hergeleitet werden, wenn sie
 		fuer die Strahlungskorrektur benoetigt werden sollten und nicht als Grids auf der Platte
 		zur Verfuegung stehen. Es kann u.U. sinnvoll sein, diese Datensaetze nicht hier erzeugen zu lassen,
@@ -5723,7 +6045,7 @@ int defaultini::Parameters(bool *state)
 		return ParamsFunctionState;
 		break;
 
-	case 19:
+	case 20:
 
 		(*WSstream) << "check_ice_firn_grid..." << "[end-entry]";
 		check_ice_firn_grid();
@@ -5734,7 +6056,7 @@ int defaultini::Parameters(bool *state)
 		return ParamsFunctionState;
 		break;
 
-	case 20:
+	case 21:
 
 		(*WSstream) << "MakeRegionWeightGrids..."<<"[end-entry]";
 		MakeRegionWeightGrids();
@@ -5745,7 +6067,7 @@ int defaultini::Parameters(bool *state)
 		return ParamsFunctionState;
 		break;
 
-	case 21:
+	case 22:
 		/* Lesen der variablen Grids, wenn Leseparameter==0, dann erzeugen von Albedo
 		aus Landnutzung und Bodenspeicher aus Feldkapazitaet */
 		//    read_variable_Grids();  /* SB ansprechbar, wenn es eingelesen wurde oder erzeugt wurde, sonst natuerlich nicht! */
@@ -5753,7 +6075,7 @@ int defaultini::Parameters(bool *state)
 		state=false;
 		return ParamsFunctionState;
 
-	case 22:
+	case 23:
 		// reading parameters for external coupling
 		(*WSstream) << "GetCouplingParameters..."<<"[end-entry]";
 		GetCouplingParameters();

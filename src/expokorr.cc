@@ -48,11 +48,11 @@ teilmodellklasse(Stream,breitearg,laengearg,bezugsmeridianarg,bezeichnung,steuer
 	WriteASCIIGrids, WriteDoubleGrids, WriteNetcdfGrids, DefaultInputDirectory, DefaultOutputDirectory, v_mpiregioncnt, p_sendHalo, p_recvHalo,
 	p_doSpinUp, p_routingmode, p_vHRU),
 hmax(0),gewicht(0),sp(0),spa(0),spe(0),strlsumme(0),cossunazim(0),korrparameter(0),
-EXKORR(0),IEFFMAX(0),TKORR(0),ASP(0),SL(0),SSD(0),dhm(0),SHAPE(0),T(0),Tnacht(0),Isenk(0),spreiz(0),
+EXKORR(0),IEFFMAX(0),TKORR(0),ASP(0),SL(0),SSD(0),SSDABS(0),dhm(0),SHAPE(0),T(0),Tnacht(0),Isenk(0),spreiz(0),
 indexx(0),indexy(0),dx(0),dy(0),vx(0),vy(0),
 optim(0),dz(0),cos_za(0),EXKORRwritegrid(0),ieffmaxwritegrid(0),SHAPEwritegrid(0),TKORRwritegrid(0),
 exkorrindex(0),ieffmaxindex(0),shapeindex(0),tnachtindex(0),tindex(0),tkorrindex(0),
-cn(0),count(0),split(0),split_temp(0),EXKORRgridname(0),SHAPEgridname(0),TKORRgridname(0)
+cn(0),count(0),split(0),split_temp(0),EXKORRgridname(0),SHAPEgridname(0),TKORRgridname(0), ssdIsAbsolute(0)
 {
 	try
 	{
@@ -132,27 +132,47 @@ cn(0),count(0),split(0),split_temp(0),EXKORRgridname(0),SHAPEgridname(0),TKORRgr
 
 			/* SSD wird extra gesucht, da das Programm nicht abbrechen soll, wenn SSD nicht gefunden wird, getindex aber
 		bei erfolgloser Suche das Programm mit einer Fehlermeldung abbricht */
-			i=1;
-			while (strcmp(gridinfo[i].identification,_Sonnenscheindauer_)!=0)
-			{
-				i++;
-				if ((i>=gridmaxanzahl)||(gridinfo[i].identification==NULL)) break;
-			}
+			
 
-			if ((i>=gridmaxanzahl)||(gridinfo[i].identification==NULL))
-			{
-				SSD = NULL;
-				ssdindex = -1;
-			}
-			else
-			{
-				SSD = gridinfo[i].pointer;
-				ssdindex = i;
-			}
+//			i=1;
+//			while (strcmp(gridinfo[i].identification,_Sonnenscheindauer_)!=0)
+//			{
+//				i++;
+//				if ((i>=gridmaxanzahl)||(gridinfo[i].identification==NULL)) break;
+//			}
+//
+//			if ((i>=gridmaxanzahl)||(gridinfo[i].identification==NULL))
+//			{
+//				SSD = NULL;
+//				ssdindex = -1;
+//			}
+//			else
+//			{
+//				SSD = gridinfo[i].pointer;
+//				ssdindex = i;
+//			}
 
 			/* auch die Temperatur soll nur verwendet werden, wenn sie als Eingabegroesse interpoliert wird */
 		} /* if (doit!=0) */
 
+		if (ist_vorhanden(_Sonnenscheindauer_))
+		{
+			SSD = gridinfo[getindex(_Sonnenscheindauer_)].pointer;
+		}
+		else
+		{
+			ssdabsindex = ist_vorhanden(_SunshineDurationAbsolute_);
+			if (ssdabsindex > 0)
+			{
+				SSDABS = gridinfo[getindex(_SunshineDurationAbsolute_)].pointer;
+				// create new SSD grid for ETPETR and other sub models
+				ssdIsAbsolute = 1;
+			}
+			else
+			{
+				SSD = SSDABS = NULL;
+			}
+		}
 
 		/* die Suche nach T wird auch ausgefuehrt, wenn doit==0, weil
 	nachher Tnacht gebildet werden muss, wofuer T genutzt wird */
@@ -347,6 +367,26 @@ cn(0),count(0),split(0),split_temp(0),EXKORRgridname(0),SHAPEgridname(0),TKORRgr
 			Tnacht = T;
 			tnachtindex = tindex;
 		}
+
+		// SSD ahouls be created regardles is expocorr runs or not since ot is required in evaporation and unsatzon as well
+		if (ssdIsAbsolute == 1)
+		{
+			// create SSD grid
+			i++;
+			SSD = matrix(mpistartrow, mpiendrow, 1, ncols, nrows); // will also be written for actual rank only
+			initialize_grid(i, _Sonnenscheindauer_, SSD, NULL, 0, _Sonnenscheindauer_, 0, mpistartrow, mpiendrow);
+			for (k = mpistartrow; k <= mpiendrow; k++)
+			{
+				for (j = 1; j <= ncols; j++)
+				{
+					SSD[k][j] = zn[k][j] == nodata ? nodata : 0;
+				}
+			}
+			ssdabsindex = i;
+		}
+
+
+
 	}
 	catch (int ex)
 	{
@@ -372,10 +412,134 @@ double **expokorrklasse::GetExpoKorrAdress()
 }
 
 
+// methid convertAbsoluteToRelativeSSD
+// this method is called only once per time step. 
+// it converts the sunshine duration from absolute values in minutes per time step into relative values in 1/1.
+// It should work for all comibinations of sunset and sunrise with respect to the time step start and end as well as in polar day and polar night (northern and southern hemisphere) 
+// and also for time zones where the sun rises after the sun set during a 24 hours day.
+void expokorrklasse::convertAbsoluteToRelativeSSD(int minute,int hour, int day, int month, int houroffset)
+{
+	
+	double sunr =0, suns = 0;
+
+// The relative sunshine duration is valid for all following time steps, even if there are 24 hours as sub steps within a day (daily time step)
+// However, this is handled in the algorithms later. They also consider sunrise and sunset, so we can concentrate here on the pure conversion
+// call the sunrise function here 
+	sunrise(day, month, breite, laenge, &sunr, &suns);
+	sunr = fmod(sunr + 24.0, 24.0); // fixes the sunrise between 0 ... 24
+	suns = fmod(suns + 24.0, 24.0); // fixes the sunset between 0 ... 24 
+
+	bool polarday = false;
+	bool polarnight = false;
+
+	// for areas with no sunset or no sunrise within a day, suns will be returned with 0.0 and sunr with 24.0 by the sunrise function. This may be polar regions during polar day and polar night
+	// so lets check
+	if ((suns == 0.0) && (sunr == 24.0))
+	{
+		if ((breite > 66.0) && ((month >= 9) || (month <= 3))) 		 { 
+			// polarnight northern hemisphere
+			polarnight = true;
+		}
+		else if ((breite > 66.0) && ((month < 9) || (month > 3))) 	 { 
+			// polarday northern hemisphere
+			polarday = true;
+		}
+		else if ((breite < -66.0) && ((month >= 9) || (month <= 3))) { 
+			// polarday southern hemisphere
+			polarday = true;
+		}
+		else if ((breite < -66.0) && ((month < 9) || (month > 3)))   { 
+			// polarnight southern hemisphere
+			polarnight = true;
+		}
+		else {
+			// something is wrong, since nowhere on earth the sun shines either 0 or 24 hours outside the polar regions, which begin above 66.33 degree north or below 66.33 degree south
+		}
+	}
+
+	int maxdaylightminutes;
+	if (polarday) {
+		maxdaylightminutes = InV;
+	}
+	else if (polarnight) {
+		maxdaylightminutes = 0;
+	} 
+
+	sunr *= 60.0; // conversion into minutes
+	suns *= 60.0; // conversion into minutes
+	double tstart = (hour * 60) + houroffset - InV + minute; // Start off time subste in Minutes since midnight
+	double tend = tstart + InV; // Time step end in minutes since midnight
+
+	// now calculate the interval lenght with the sun over the horizon which gives then the maximum sunshine duration in minutes for the interval
+	if (sunr < suns)
+	{ // normal case
+		if ((tstart < sunr) && (tend < sunr)) {
+			maxdaylightminutes = 0; // interval starts and ends before sunrise
+		} 
+		else if ((tstart<sunr) && (tend>sunr) && (tend<suns)) {
+			maxdaylightminutes = tend - sunr; // sun rises within the time step but doesn't set within the same time step
+		}
+		else if ((tstart>sunr) && (tend>sunr) && (tend<suns)) {
+			maxdaylightminutes = InV; // sunset before the time step starts and sunrise after the time step ends, i.e. gright day always
+		}
+		else if ((tstart>sunr) && (tend>sunr) && (tend>suns)) {
+			maxdaylightminutes = suns - tstart; // sunriose before the time step starts and sunset during the time step
+		}
+		else if ((tstart>suns) && (tend>suns)) {
+			maxdaylightminutes = 0; // sunrise and sunset befor the time step starts, everything is dark
+		}
+		else if ((tstart<sunr) && (tend>suns)) {
+			maxdaylightminutes = suns - sunr; // e.g. for daily time steps, the time between sunrise and sunset if taken as maximum possible sunshine duration in minutes
+		}
+	}
+	else
+	{ // sunset before sunrise, can be due to wide time zones
+		if ((tstart < suns) && (tend < suns)) {
+			maxdaylightminutes = InV; // interval starts and end before sunset
+		}
+		else if ((tstart<suns) && (tend>suns) && (tend<sunr)) {
+			maxdaylightminutes = suns - tstart; // sunset is within the time step
+		}
+		else if ((tstart>suns) && (tend>suns) && (tend<sunr)) {
+			maxdaylightminutes = 0; // dark durgin the entire time step
+		}
+		else if ((tstart<sunr) && (tend>sunr) && (tstart>suns)) {
+			maxdaylightminutes = tend - sunr; // sunrise within the timestep
+		}
+		else if ((tstart > sunr) && (tend > sunr)) {
+			maxdaylightminutes = InV; // complete time step in day light
+		}
+		else if ((tstart<suns) && (tend>sunr)) {
+			maxdaylightminutes = (suns - tstart) + (tend - sunr); // light at the beginning of the time step and at the  end of the time step is added up
+		}
+
+	}
+
+
+
+	// the relative duration is simply the fraction of the observed value on the theoretical maximum (with limits of 0 and 1).
+
+	for (int i = mpistartrow; i <= mpiendrow; i++)
+	{
+		for (int j = FirstLastCol[i].First; j <= FirstLastCol[i].Last; j++)
+		{
+			if ((zn[i][j] != nodata) && (MPIREG[i][j] == mpi_rank) && !(doSpinUp && HRUMaster[i][j] == nodata))
+			{
+				SSD[i][j] = (maxdaylightminutes > 0) ? SSDABS[i][j] / maxdaylightminutes : 0.0; // first, we only copy the values for development testing the correct calls
+				if (SSD[i][j] > 1.0) SSD[i][j] = 1.0;
+				
+			}
+		}
+	}
+
+}
+
 
 /* Ausfuehren der expositions-, gefaelle- und
 abschattungsabhaengigen Korrektur fuer die direkte Sonnenstrahlung
 sowie für die Temperatur */
+
+
 
 void expokorrklasse::run(long me, long se,long tg,long mt,long jr)
 {
@@ -394,9 +558,9 @@ void expokorrklasse::run(long me, long se,long tg,long mt,long jr)
 	{
 		if (InV>720.0)
 		{
-			for (i = mpistartrow; i <= mpiendrow; i++)
+			for (int i = mpistartrow; i <= mpiendrow; i++)
 			{
-				for (j = FirstLastCol[i].First; j <= FirstLastCol[i].Last; j++)
+				for (int j = FirstLastCol[i].First; j <= FirstLastCol[i].Last; j++)
 				{
 					if ((zn[i][j] != nodata) && (MPIREG[i][j] == mpi_rank) && !(doSpinUp && HRUMaster[i][j] == nodata))
 					{
@@ -405,6 +569,11 @@ void expokorrklasse::run(long me, long se,long tg,long mt,long jr)
 				}
 			}
 		}
+	}
+
+	if (ssdIsAbsolute)
+	{
+		this->convertAbsoluteToRelativeSSD(me,se,tg,mt,hour_offset);
 	}
 
 	if (do_it == 0) return;
@@ -440,9 +609,9 @@ void expokorrklasse::run(long me, long se,long tg,long mt,long jr)
 	berechnet (unten), wenn SSD fehlt, so dass es sonst immer 0 Grad haette. */
 	if (TKORR)
 	{
-		for (i = mpistartrow; i <= mpiendrow; i++)
+		for (int i = mpistartrow; i <= mpiendrow; i++)
 		{
-			for (j = FirstLastCol[i].First; j <= FirstLastCol[i].Last; j++)
+			for (int j = FirstLastCol[i].First; j <= FirstLastCol[i].Last; j++)
 			{
 				if ((zn[i][j] != nodata) && (MPIREG[i][j] == mpi_rank) && !(doSpinUp && HRUMaster[i][j] == nodata))
 				{
@@ -466,9 +635,9 @@ void expokorrklasse::run(long me, long se,long tg,long mt,long jr)
 	gewichtet). Ganz am Ende wird dann durch eine separat ermittelte unkrrigierte
 	Intervallsumme der STrahlung geteilt, um so den effektiven Korrekturfaktor zu erhalten */
 
-	for (i=mpistartrow;i<=mpiendrow;i++)
+	for (int i=mpistartrow;i<=mpiendrow;i++)
 	{
-		for (j=FirstLastCol[i].First;j<=FirstLastCol[i].Last;j++)
+		for (int j=FirstLastCol[i].First;j<=FirstLastCol[i].Last;j++)
 		{
 			if ((zn[i][j] != nodata) && (MPIREG[i][j] == mpi_rank) && !(doSpinUp && HRUMaster[i][j] == nodata))
 			//      if (zn[i][j]!=nodata)
@@ -496,7 +665,7 @@ void expokorrklasse::run(long me, long se,long tg,long mt,long jr)
 
 	l=0;
 
-	for (sp=(double)spa;sp<(double)spe;sp+=gewicht*(InV/60.0))
+	for (int sp=(double)spa;sp<(double)spe;sp+=gewicht*(InV/60.0))
 	/* sp ist die Zeit (Bruchteile voller Stunden erlaubt und noetig) des aktuellen Teilintervalles,
 	korrigiert mit der Zeitverschiebung der Messzeit gegen die gesetzliche Zeit (darf nur Winterzeit sein);
 	so ist spa bei einem Zeitintervall von 2 Stunden und split=4 (jede halbe Stunde neu berechnen)
@@ -649,9 +818,9 @@ void expokorrklasse::run(long me, long se,long tg,long mt,long jr)
 		strlsumme += (Isenk*cosZ);
 
 		/* SHAPE auf 0 setzen */
-		for (i = sr; i <= er; i++)
+		for (int i = sr; i <= er; i++)
 		{
-			for (j = FirstLastCol[i].First; j <= FirstLastCol[i].Last; j++)
+			for (int j = FirstLastCol[i].First; j <= FirstLastCol[i].Last; j++)
 			{
 				if ((zn[i][j] != nodata) && ((MPIREG[i][j] == mpi_rank) || (mpi_rank == 0 && korrparameter<=2)) && !(doSpinUp && HRUMaster[i][j] == nodata))
 				// if (zn[i][j]!=nodata)
@@ -727,9 +896,9 @@ void expokorrklasse::run(long me, long se,long tg,long mt,long jr)
 					dz = fabs((double)cellsize / sin(sunazimuthangle))*tan(sunaltitudeangle);
 
 					//#pragma omp parallel for schedule(runtime) private(i,j)
-					for (i = nrl; i != nrh; i -= vy)
+					for (int i = nrl; i != nrh; i -= vy)
 					{
-						for (j = ncl; j != nch; j += vx)
+						for (int j = ncl; j != nch; j += vx)
 						{
 							if (i != nrh + vy)
 							{
@@ -781,9 +950,9 @@ void expokorrklasse::run(long me, long se,long tg,long mt,long jr)
 					dz = fabs((double)cellsize / cos(sunazimuthangle))*tan(sunaltitudeangle);
 
 					//#pragma omp parallel for schedule(runtime) private(i,j)
-					for (i = nrl; i != nrh; i -= vy)
+					for (int i = nrl; i != nrh; i -= vy)
 					{
-						for (j = ncl; j != nch; j += vx)
+						for (int j = ncl; j != nch; j += vx)
 						{
 							if (i != nrh + vy)
 							{
@@ -851,14 +1020,24 @@ void expokorrklasse::run(long me, long se,long tg,long mt,long jr)
 					{
 						cosTheta = getcosincidence(ASP[i][j] * pi / 180.0, SL[i][j] * pi / 180.0, sunazimuthangle, sunzenithangle);
 						if (cosTheta <= 0)
+						{
 							cosTheta = 0.0;
+						}
 						else
+						{
 							if (SSD)
-								if (SSD[i][j]<0.1)
+							{
+								if (SSD[i][j] < 0.1)
+								{
 									cosTheta = cosZ; /* wenn keine Sonne scheint, soll keine Korrektur erfolgen */
+								}
+							}
+						}
 					}
 					else
+					{
 						cosTheta = 0;
+					}
 
 					/* Korrektur fuer direkte Sonnenstrahlung:
 						wenn Sonne unter Horizont      : 1 (keine Korrektur
@@ -974,6 +1153,12 @@ void expokorrklasse::ClearMemory()
 		free_matrix(gridinfo[shapeindex].pointer, gridinfo[shapeindex].nrl, gridinfo[shapeindex].nrh, 1, ncols, nrows);
 		free_matrix(gridinfo[exkorrindex].pointer, gridinfo[exkorrindex].nrl, gridinfo[exkorrindex].nrh, 1, ncols, nrows);
 		free_matrix(gridinfo[ieffmaxindex].pointer, gridinfo[ieffmaxindex].nrl, gridinfo[ieffmaxindex].nrh, 1, ncols, nrows);
+
+		if (ssdIsAbsolute == 1)
+		{
+			free_matrix(gridinfo[ssdabsindex].pointer, gridinfo[ssdabsindex].nrl, gridinfo[ssdabsindex].nrh, 1, ncols, nrows);;
+			delete_grid(ssdabsindex);
+		}
 
 		delete_grid(shapeindex);
 		delete_grid(exkorrindex);

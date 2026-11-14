@@ -121,6 +121,7 @@ des Textes gesucht werden muss, sondern die Aenderung in dieser Datei ueberall w
 #define _Globalstrahlung_             "global_radiation"
 #define _Nettostrahlung_              "net_radiation"
 #define _Sonnenscheindauer_           "sunshine_duration"
+#define _SunshineDurationAbsolute_    "sunshine_duration_absolute"
 #define _Temperatur_                  "temperature"
 #define _Temperatur_14_               "temperature_14"
 #define _Windgeschwindigkeit_         "wind_speed"
@@ -560,6 +561,11 @@ des Textes gesucht werden muss, sondern die Aenderung in dieser Datei ueberall w
 #define _usableFieldCapacity_perc_	   "usableFieldCapacity_perc" // quotient of usableFieldCapacity_mm / maxFieldCapacity_mm * 100%
 #define _maxFieldCapacity_mm_          "maxFieldCapacity_mm"  // mm water in root zone at field capacity (depending on parameter psi_FC per soil layer) used for calculating percentage of usable water content 
 #define _minFieldCapacity_mm_	       "minFieldCapacity_mm"  // mm water in rrot zone at theta_res 
+
+// definitions for computing soil types from grain size fraction grids for clay, sand and silt
+#define _clayfraction_					"clay_fraction" 
+#define _siltfraction_					"sand_fraction" 
+#define _sandfraction_					"silt_fraction" 
 
 #endif // enclosing ifdef for modconst.h
 

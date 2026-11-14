@@ -1659,6 +1659,11 @@ public:
 								int *p_ncols ,  int *p_nrows, double *p_nodata);
 	virtual void  check_LU_Codes(int l);
 	virtual void  check_SOIL_Codes(int l);
+
+	// 2026-10-31 new methods for computing soil type from grain size distributions
+	virtual int getUSDASoilTexture(double clay, double silt, double sand);
+	virtual void  makeSoilGridFromClaySiltSand(int l);
+
 	virtual void  check_irrig_Codes(int l);
 	virtual void  readPeriodicStandardGrids(long minute,long stunde,long tag,long monat,long jahr,long Interval);
 	virtual void  read_variable_Grids();

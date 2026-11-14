@@ -82,11 +82,11 @@ void netcdfhlp::findFileNameFromGridName(char* filename, char* gridname, bool is
 	if (index<0)
 	{
 		if (isSumFile) {
-			sprintf(filename, "%s%s", filename, ".nc");
+			sprintf(filename, "%s%s", tmpname, ".nc");
 			//		sprintf(filename, "%s%s", filename, "_sum.nc");
 		}
 		else {
-			sprintf(filename, "%s%s", filename, ".nc");
+			sprintf(filename, "%s%s", tmpname, ".nc");
 		}
 	}
 	free(tmpname);
