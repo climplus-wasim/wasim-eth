@@ -4145,7 +4145,8 @@ void meteointerpol::flushbuffers()
 }
 
 precicorrclass::precicorrclass(int &retvalue,wasim::mystream *Stream,meteointerpol **p_meteo,
-	char **meteonamen,char *steuername,int LogLevel,int anzahlgroessen,int p_regiomax,
+	char **meteonamen,char *steuername,int LogLevel,int anzahlgroessen,
+	int p_regiomax, int p_regiomaxwert, int* p_rarray,
 	gridinfotype *p_gridinfo,
 	firstlast *p_FirstLastCol ,
 	int   p_ncols, int        p_nrows, int p_mpistartrow, int p_mpiendrow,
@@ -4203,24 +4204,101 @@ Pindex(0),Tindex(0),Uindex(0),nowind(0),notemp(0),doGriddedCorrection(0),WIND(0)
 		/* lesen der EInstellungsparameter */
 
 		fscanfln(steuerdatei,"%d",&do_it   ,"do_it fuer "           ,tstr);
-		fscanfln(steuerdatei,"%lf",&Tgrenz  ,"Grenztemperatur fuer " ,tstr);
-		fscanfln(steuerdatei,"%lf",&br      ,"Konstante Regen fuer " ,tstr);
-		fscanfln(steuerdatei,"%lf",&ar      ,"Anstieg Regen fuer "   ,tstr);
-		fscanfln(steuerdatei,"%lf",&bs      ,"Konstante Schnee fuer ",tstr);
-		fscanfln(steuerdatei,"%lf",&as      ,"Anstieg Schnee fuer "  ,tstr);
+		if (routingmode)
+		{
+			do_it = 0; // in routingmode, no other modules than routing are permitted to run
+		}
+		if (do_it == 0) return;
+
+		// new in 11.02.00: parameters per region
+
+//		fscanfln(steuerdatei,"%lf",&Tgrenz  ,"Grenztemperatur fuer " ,tstr);
+//		fscanfln(steuerdatei,"%lf",&br      ,"Konstante Regen fuer " ,tstr);
+//		fscanfln(steuerdatei,"%lf",&ar      ,"Anstieg Regen fuer "   ,tstr);
+//		fscanfln(steuerdatei,"%lf",&bs      ,"Konstante Schnee fuer ",tstr);
+//		fscanfln(steuerdatei,"%lf",&as      ,"Anstieg Schnee fuer "  ,tstr);
+
+		Tgrenz = new double[regiomax + 1];
+		br = new double[regiomax + 1];
+		ar = new double[regiomax + 1];
+		bs = new double[regiomax + 1];
+		as = new double[regiomax + 1];
+
+		if (do_it == 1)
+		{
+			// traditional one-parameter correction
+			fscanfln(steuerdatei,"%lf",&Tgrenz[0], "temperatur limit snow/rain for ", tstr);
+			fscanfln(steuerdatei,"%lf",&br[0]      ,"correction constant rain for " ,tstr);
+			fscanfln(steuerdatei,"%lf",&ar[0]      ,"correction factor rain for "   ,tstr);
+			fscanfln(steuerdatei,"%lf",&bs[0]      ,"correction constant snow for ",tstr);
+			fscanfln(steuerdatei,"%lf",&as[0]      ,"correction factor snow for "  ,tstr);
+
+			for (int i = 1; i <= regiomax; i++)
+			{
+				Tgrenz[i] = Tgrenz[0];
+				br[i] = br[0];
+				ar[i] = ar[0];
+				bs[i] = bs[0];
+				as[i] = as[0];
+			}
+
+		}
+		else
+		{ // do_it=2, per region one parameter
+			// Tgrenz
+			for (nr = 1; nr < regiomax; nr++)
+			{
+				fscanf(steuerdatei, "%lf", &(Tgrenz[nr]));
+			}
+			// last number with an optional comment or line feed after the value
+			fscanfln(steuerdatei, "%lf", &Tgrenz[regiomax], "temperatur limit snow/rain for all regions for", tstr);
+			Tgrenz[0] = 0.0;
+
+			// br - correction constant rain
+			for (nr = 1; nr < regiomax; nr++)
+			{
+				fscanf(steuerdatei, "%lf", &(br[nr]));
+			}
+			// last number with an optional comment or line feed after the value
+			fscanfln(steuerdatei, "%lf", &br[regiomax], "correction constant rain  for all regions for", tstr);
+			br[0] = 0.0;
+
+			// ar - correction factor rain
+			for (nr = 1; nr < regiomax; nr++)
+			{
+				fscanf(steuerdatei, "%lf", &(ar[nr]));
+			}
+			// last number with an optional comment or line feed after the value
+			fscanfln(steuerdatei, "%lf", &ar[regiomax], "correction factor rain  for all regions for", tstr);
+			ar[0] = 1.0;
+
+			// bs - correction constant snow
+			for (nr = 1; nr < regiomax; nr++)
+			{
+				fscanf(steuerdatei, "%lf", &(bs[nr]));
+			}
+			// last number with an optional comment or line feed after the value
+			fscanfln(steuerdatei, "%lf", &bs[regiomax], "correction constant snow for all regions for", tstr);
+			bs[0] = 0.0;
+
+			// as correction factor snow
+			for (nr = 1; nr < regiomax; nr++)
+			{
+				fscanf(steuerdatei, "%lf", &(as[nr]));
+			}
+			// last number with an optional comment or line feed after the value
+			fscanfln(steuerdatei, "%lf", &as[regiomax], "correction factor snow  for all regions for", tstr);
+			as[0] = 1.0;
+		}
 
 
+
+		// all parameters read, closing control file for this class
 		if ((fclose(steuerdatei))==EOF)
 		{
 			(*WSstream) << "FATAL: error closing"<<steuerdateiname<<"[end-entry]";
 			throw(11);
 		}
-
-		if (routingmode)
-		{
-			do_it = 0; // in routingmode, no other modules than routing are permitted to run
-		}
-		if (do_it==0) return;
 
 		igo = (double*)calloc(regiomax+1,sizeof(double));
 		igu = (double*)calloc(regiomax+1,sizeof(double));
@@ -4364,6 +4442,45 @@ Pindex(0),Tindex(0),Uindex(0),nowind(0),notemp(0),doGriddedCorrection(0),WIND(0)
 				}
 			}
 		}
+
+		// getting regions and weights
+		regiomax = p_regiomax;
+		regiomaxwert = p_regiomaxwert;
+		rarray = p_rarray;
+
+		regio1index = regio2index = regio3index = weight1index = weight2index = weight3index = 0;
+		WEIGHT = NULL;
+		REGION = NULL;
+		if (rarray) /* es wurde ein Regionengrid eingelesen und ausgewertet, es gibt also mindestens eine Region */
+		{
+			WEIGHT = (double***)calloc(4, sizeof(double**));
+			REGION = (double***)calloc(4, sizeof(double**));
+			REGION[1] = REGION[2] = REGION[3] = WEIGHT[1] = WEIGHT[2] = WEIGHT[3] = NULL;
+			regio1index = ist_vorhanden(_regression_regions_1_);
+			weight1index = ist_vorhanden(_regression_weights_1_);
+			REGION[1] = gridinfo[regio1index].pointer;
+			WEIGHT[1] = gridinfo[weight1index].pointer;
+			if (regiomax > 1)
+			{
+				regio2index = ist_vorhanden(_regression_regions_2_);
+				weight2index = ist_vorhanden(_regression_weights_2_);
+				REGION[2] = gridinfo[regio2index].pointer;
+				WEIGHT[2] = gridinfo[weight2index].pointer;
+			}
+			if (regiomax > 2)
+			{
+				regio3index = ist_vorhanden(_regression_regions_3_);
+				weight3index = ist_vorhanden(_regression_weights_3_);
+				REGION[3] = gridinfo[regio3index].pointer;
+				WEIGHT[3] = gridinfo[weight3index].pointer;
+			}
+		}
+		else
+		{
+			regiomax = 0;
+			REGION = WEIGHT = NULL;
+		}
+
 	}
 	catch (int ex) 
 	// all exceptions must be caught within the constructor, because throwing an exception 
@@ -4428,7 +4545,7 @@ void precicorrclass::run()
 
 				Twert[i]=meteo[Tindex]->getsinglepoint(Px[i],Py[i],Phoehe[i],entf);
 				/* liefert Temperatur-Interpolation einen Fehlwert, wird Regen angenommen, also value > Tgrenz gesetzt */
-				if (Twert[i] < -meteo[Tindex]->fehlwert) Twert[i]=Tgrenz+1.0;
+				if (Twert[i] < -meteo[Tindex]->fehlwert) Twert[i]=Tgrenz[0] + 1.0;
 			}
 		}
 		if (!nowind)
@@ -4448,18 +4565,18 @@ void precicorrclass::run()
 			/* Temperatur und Wind stehen zur Verfuegung, wenn kein Wind gemessen wurde,
 		ist Uwert immer 0, die Korrektur erfolgt dann nur anhand der konstanten Faktoren br/bs */
 			for (i=1;i<=Panz;i++)
-			if (Twert[i] > Tgrenz)
+			if (Twert[i] > Tgrenz[0])
 			{ 
 				if (Pwert[i] >= -meteo[Pindex]->fehlwert)
 				{
-					Pwert[i] = Pwert[i] * (br + ar * Uwert[i]);
+					Pwert[i] = Pwert[i] * (br[0] + ar[0] * Uwert[i]);
 				}
 			}
 			else
 			{ 
 				if (Pwert[i] >= -meteo[Pindex]->fehlwert)
 				{
-					Pwert[i] = Pwert[i] * (bs + as * Uwert[i]);
+					Pwert[i] = Pwert[i] * (bs[0] + as[0] * Uwert[i]);
 				}
 			}
 		}
@@ -4468,7 +4585,7 @@ void precicorrclass::run()
 		die Korrektur erfolgt dann nur durch die Windwerte. Steht auch der Wind nicht zur Verfuegung, sind alle
 		Uwerte == 0, so dass nur der Korrekturfaktor br zur Anwendung kommt */
 			for (i=1;i<=Panz;i++)
-			if (Pwert[i] >= -meteo[Pindex]->fehlwert) Pwert[i] = Pwert[i]*(br + ar * Uwert[i]);
+			if (Pwert[i] >= -meteo[Pindex]->fehlwert) Pwert[i] = Pwert[i]*(br[0] + ar[0] * Uwert[i]);
 		}
 	}
 
@@ -4523,9 +4640,9 @@ void precicorrclass::run()
 //							Twert[1]=meteo[Tindex]->getsinglepoint(xcen,ycen,hr,entf);
 							Twert[1]=meteo[Tindex]->getsinglepoint(nodata,nodata,hr,entf);
 							/* liefert Temperatur-Interpolation einen Fehlwert, wird Regen angenommen, also value > Tgrenz gesetzt */
-							if (Twert[1] < -meteo[Tindex]->fehlwert) Twert[1]=Tgrenz+1.0;
+							if (Twert[1] < -meteo[Tindex]->fehlwert) Twert[1]=Tgrenz[0] + 1.0;
 						}
-						else Twert[1]=Tgrenz+1.0;
+						else Twert[1]=Tgrenz[0] + 1.0;
 						if (!nowind) {
 //							Uwert[1]=meteo[Uindex]->getsinglepoint(xcen,ycen,hr,entf);
 							Uwert[1]=meteo[Uindex]->getsinglepoint(nodata,nodata,hr,entf);
@@ -4534,7 +4651,7 @@ void precicorrclass::run()
 							if (Uwert[1] < -meteo[Uindex]->fehlwert) Uwert[1]=0.0;
 						} else Uwert[1]=0.0;
 						/* Korrektur des Niederschlagswertes */
-						if (Twert[1] > Tgrenz)  P1 = P1*(br + ar * Uwert[1]); else P1 = P1*(bs + as * Uwert[1]);
+						if (Twert[1] > Tgrenz[0])  P1 = P1 * (br[0] + ar[0] * Uwert[1]); else P1 = P1 * (bs[0] + as[0] * Uwert[1]);
 						/* Registerupdate */
 						Sx  += hr;
 						Sy  += P1;
@@ -4562,9 +4679,9 @@ void precicorrclass::run()
 //							Twert[1]=meteo[Tindex]->getsinglepoint(xcen,ycen,hr,entf);
 							Twert[1]=meteo[Tindex]->getsinglepoint(nodata,nodata,hr,entf);
 							/* liefert Temperatur-Interpolation einen Fehlwert, wird Regen angenommen, also value > Tgrenz gesetzt */
-							if (Twert[1] < -meteo[Tindex]->fehlwert) Twert[1]=Tgrenz+1.0;
+							if (Twert[1] < -meteo[Tindex]->fehlwert) Twert[1]=Tgrenz[0] + 1.0;
 						}
-						else Twert[1]=Tgrenz+1.0;
+						else Twert[1]=Tgrenz[0] + 1.0;
 						if (!nowind) {
 //							Uwert[1]=meteo[Uindex]->getsinglepoint(xcen,ycen,hr,entf);
 							Uwert[1]=meteo[Uindex]->getsinglepoint(nodata,nodata,hr,entf);
@@ -4573,7 +4690,7 @@ void precicorrclass::run()
 							if (Uwert[1] < -meteo[Uindex]->fehlwert) Uwert[1]=0.0;
 						} else Uwert[1]=0.0;
 						/* Korrektur des Niederschlagswertes */
-						if (Twert[1] > Tgrenz)  P1 = P1*(br + ar * Uwert[1]); else P1 = P1*(bs + as * Uwert[1]);
+						if (Twert[1] > Tgrenz[0])  P1 = P1 * (br[0] + ar[0] * Uwert[1]); else P1 = P1 * (bs[0] + as[0] * Uwert[1]);
 						/* Registerupdate */
 						Sx  += hr;
 						Sy  += P1;
@@ -4606,9 +4723,9 @@ void precicorrclass::run()
 //							Twert[1]=meteo[Tindex]->getsinglepoint(xcen,ycen,hr,entf);
 							Twert[1]=meteo[Tindex]->getsinglepoint(nodata,nodata,hr,entf);
 							/* liefert Temperatur-Interpolation einen Fehlwert, wird Regen angenommen, also value > Tgrenz gesetzt */
-							if (Twert[1] < -meteo[Tindex]->fehlwert) Twert[1]=Tgrenz+1.0;
+							if (Twert[1] < -meteo[Tindex]->fehlwert) Twert[1]=Tgrenz[0] + 1.0;
 						}
-						else Twert[1]=Tgrenz+1.0;
+						else Twert[1]=Tgrenz[0] +1.0;
 						if (!nowind) {
 //							Uwert[1]=meteo[Uindex]->getsinglepoint(xcen,ycen,hr,entf);
 							Uwert[1]=meteo[Uindex]->getsinglepoint(nodata,nodata,hr,entf);
@@ -4617,7 +4734,7 @@ void precicorrclass::run()
 							if (Uwert[1] < -meteo[Uindex]->fehlwert) Uwert[1]=0.0;
 						} else Uwert[1]=0.0;
 						/* Korrektur des Niederschlagswertes */
-						if (Twert[1] > Tgrenz)  P1 = P1*(br + ar * Uwert[1]); else P1 = P1*(bs + as * Uwert[1]);
+						if (Twert[1] > Tgrenz[0])  P1 = P1*(br[0] + ar[0] * Uwert[1]); else P1 = P1*(bs[0] + as[0] * Uwert[1]);
 						Sx  += hr;
 						Sy  += P1;
 						Sxy += P1*hr;
@@ -4682,40 +4799,119 @@ void precicorrclass::runOnSuperposedRegions()
 		{
 			if (MPIREG[i][j] == mpi_rank)
 			{
-				/* die eigentliche Korrektur */
-				if (!notemp) /* Temperatur steht zur Verfuegung */
-				{
-					/* Temperatur und Wind stehen zur Verfuegung, wenn kein Wind gemessen wurde,
-				ist Uwert immer 0, die Korrektur erfolgt dann nur anhand der konstanten Faktoren br/bs */
-					if (TEMP[i][j] > Tgrenz)
+				/* do the correction here */
+				// get the regions, at max a point is assigned to three regions
+				int* reg = new int[4] {-9999, rarray[(int)REGION[1][i][j]], 0, 0};
+				double* weight = new double[4] {-9999.0, WEIGHT[1][i][j], 0.0, 0.0};
+
+				if (regiomax>1)
+				{ 
+					if ((int)REGION[2][i][j] > 0) reg[2] = rarray[(int)REGION[2][i][j]];
+					if (reg[2] > 0)
 					{
-						if (WIND)
+						weight[2] = WEIGHT[2][i][j];
+					}
+
+					if (regiomax > 2)
+					{
+						if ((int)REGION[3][i][j] > 0) reg[3] = rarray[(int)REGION[3][i][j]];
+						if (reg[3] > 0)
 						{
-							if (PRECIP[i][j] >= -meteo[Pindex]->fehlwert) PRECIP[i][j] = PRECIP[i][j] * (br + ar * WIND[i][j]);
-						}
-						else
-						{
-							if (PRECIP[i][j] >= -meteo[Pindex]->fehlwert) PRECIP[i][j] = PRECIP[i][j] * (br + ar * 0);
+							weight[3] = WEIGHT[3][i][j];
 						}
 					}
-					else
+				}
+				// no we have reg1, reg2 and reg3 with their respective weights weight1, weight2 and weight3. If a cell has only one (or two) regions assigned, then reg2 and reg3 (or only reg3) are 0 and weight2 and weight3 (or only weight3) are 0
+				// thus, we can use all reg-indices and weights within a single formula
+				// -----------------------------------------------------------------------------
+				// next step: getting temperature weight (Tgrenz minus 1 is only snow, Tgrenz+1 is only rain, 
+				// everything between is a certain amount rain and a certain amount snow, 
+				// assuming a linear transition we need to interpolate linear between both points
+				
+				// default values for rain and snow fraction weights (per region, since Tgrenz may vary from region to region)
+				double* ws = new double[4] {-9999.0, 0.0, 0.0, 0.0}; // weight for snow fraction
+				double* wr = new double[4] {-9999.0, 1.0, 1.0, 1.0}; // weight for rain fraction
+				
+				// constants for better readibility of the following formulas
+				const double maxweightrain = 1.0;
+				const double minweightrain = 0.0;
+
+				double T = notemp ? 0.0: TEMP[i][j];
+				double rainoffset = 1.0; // one degree celsius more than Tgrenz is the limit for any snow
+				double snowoffset = -1.0; // one degree celsius less than Tgrenz is the limit for any rain
+				
+				double transitionrange = rainoffset - snowoffset;
+
+				if (!notemp)
+				{
+					for (int r = 1; r <= 3; r++)
 					{
-						if (WIND)
-						{
-							if (PRECIP[i][j] >= -meteo[Pindex]->fehlwert) PRECIP[i][j] = PRECIP[i][j] * (bs + as * WIND[i][j]);
+
+						if (T < Tgrenz[reg[r]] - 1.0)
+						{ // temperature below threshold for pure snow
+							ws[r] = 1.0;
+							wr[r] = 0.0;
 						}
-						else
-						{
-							if (PRECIP[i][j] >= -meteo[Pindex]->fehlwert) PRECIP[i][j] = PRECIP[i][j] * (bs + as * 0);
+						else if (T < Tgrenz[reg[r]] + 1.0)
+						{ // temperature between snow and rain, do a linear interpolation 
+							wr[r] = (T - (Tgrenz[reg[r]] + snowoffset)) / (rainoffset-snowoffset);
+							ws[r] = 1.0 - wr[r];
 						}
 					}
 				}
 				else
-				{ /* Wenn keine Temperatur zur Verfuegung steht, dann wird immer angenommen, dass es sich um Regen handelt
-				die Korrektur erfolgt dann nur durch die Windwerte. Steht auch der Wind nicht zur Verfuegung, sind alle
-				Uwerte == 0, so dass nur der Korrekturfaktor br zur Anwendung kommt */
-					if (PRECIP[i][j] >= -meteo[Pindex]->fehlwert) PRECIP[i][j] = PRECIP[i][j] * (br + ar * WIND[i][j]);
+				{ // no temperature information, we assume always rain
+					for (int r = 1; r <= 3; r++)
+					{
+						ws[r] = 0.0;
+						wr[r] = 1.0;
+					}
 				}
+				double nodata = -meteo[Pindex]->fehlwert; // e.g. 9998 is defined in the control file, so the actual value is -9998, i.e. -9999 counts as nodata
+				double u = (WIND ? WIND[i][j] : 0.0);
+
+				double f1 = (br[reg[1]] + ar[reg[1]] * u) * weight[1] * wr[1]; // weight for rain for region 1 with parameters for region 1
+				double f2 = (br[reg[2]] + ar[reg[2]] * u) * weight[2] * wr[2]; // weight for rain for region 1 with parameters for region 2
+				double f3 = (br[reg[3]] + ar[reg[3]] * u) * weight[3] * wr[3]; // weight for rain for region 1 with parameters for region 3
+				double f4 = (bs[reg[1]] + as[reg[1]] * u) * weight[1] * ws[1]; // weight for rain for region 1 with parameters for region 1
+				double f5 = (bs[reg[2]] + as[reg[2]] * u) * weight[2] * ws[2]; // weight for rain for region 1 with parameters for region 2
+				double f6 = (bs[reg[3]] + as[reg[3]] * u) * weight[3] * ws[3]; // weight for rain for region 1 with parameters for region 3
+
+				PRECIP[i][j] = (PRECIP[i][j] >= nodata ? PRECIP[i][j] * (f1+f2+f3+f4+f5+f6) : PRECIP[i][j]);
+
+//				if (!notemp) /* Temperatur steht zur Verfuegung */
+//				{
+//					/* Temperatur und Wind stehen zur Verfuegung, wenn kein Wind gemessen wurde,
+//				ist Uwert immer 0, die Korrektur erfolgt dann nur anhand der konstanten Faktoren br/bs */
+//					if (TEMP[i][j] > Tgrenz[0])
+//					{
+//						if (WIND)
+//						{
+//							if (PRECIP[i][j] >= -meteo[Pindex]->fehlwert) PRECIP[i][j] = PRECIP[i][j] * (br[0] + ar[0] * WIND[i][j]);
+//						}
+//						else
+//						{
+//							if (PRECIP[i][j] >= -meteo[Pindex]->fehlwert) PRECIP[i][j] = PRECIP[i][j] * (br[0] + ar[0] * 0);
+//						}
+//					}
+//					else
+//					{
+//						if (WIND)
+//						{
+//							if (PRECIP[i][j] >= -meteo[Pindex]->fehlwert) PRECIP[i][j] = PRECIP[i][j] * (bs[0] + as[0] * WIND[i][j]);
+//						}
+//						else
+//						{
+//							if (PRECIP[i][j] >= -meteo[Pindex]->fehlwert) PRECIP[i][j] = PRECIP[i][j] * (bs[0] + as[0] * 0);
+//						}
+//					}
+//				}
+//				else
+//				{ /* Wenn keine Temperatur zur Verfuegung steht, dann wird immer angenommen, dass es sich um Regen handelt
+//				die Korrektur erfolgt dann nur durch die Windwerte. Steht auch der Wind nicht zur Verfuegung, sind alle
+//				Uwerte == 0, so dass nur der Korrekturfaktor br zur Anwendung kommt */
+//					if (PRECIP[i][j] >= -meteo[Pindex]->fehlwert) PRECIP[i][j] = PRECIP[i][j] * (br[0] + ar[0] * WIND[i][j]);
+//				}
 			}
 		}
 	}
@@ -4752,6 +4948,15 @@ void precicorrclass::ClearMemory()
 		a=NULL;
 		if (b) free(b); 
 		b=NULL;
+		if (WEIGHT) free(WEIGHT); WEIGHT = NULL;
+		if (REGION) free(REGION); REGION = NULL;
+
+		if (Tgrenz) { delete[] Tgrenz;	Tgrenz = NULL; }
+		if (ar) delete[] ar;	ar = NULL;
+		if (br) delete[] br;	br = NULL;
+		if (as) delete[] as;	as = NULL;
+		if (bs) delete[] bs;	bs = NULL;
+
 	}
 	modelobject::ClearMemory();
 }

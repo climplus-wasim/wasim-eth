@@ -431,7 +431,7 @@ ModellApplication::ModellApplication(wasim::mystream *Stream, int argc, char *ar
 			v_mpiregioncnt, sendHalo, recvHalo, doSpinUp, routingmode, vHRU);
 
 		precicorr = new precicorrclass(retvalue, WSstream, meteo, meteonamen, steuerdateiname,
-			iLogLevel, anzahlgroessen, regiomax, gridinfo, FirstLastCol,
+			iLogLevel, anzahlgroessen, regiomax, regiomaxwert, rarray, gridinfo, FirstLastCol,
 			ncols, nrows, mpistartrow, mpiendrow, xll, yll, cellsize, nodata,
 			LUtable, MultiLayerLUTable,
 			WriteASCIIGrids, WriteDoubleGrids, WriteNetcdfGrids, DefaultInputDirectory, DefaultOutputDirectory,

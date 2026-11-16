@@ -360,7 +360,8 @@ public modelobject
 public:
 	int do_it;
 	meteointerpol **meteo;
-	double Tgrenz,ar,as,br,bs; /* Grenztemperatur Regen/Schnee, Anstiege und Konstanten der Korrekturfunktion */
+//	double Tgrenz,ar,as,br,bs; /* Grenztemperatur Regen/Schnee, Anstiege und Konstanten der Korrekturfunktion */
+	double *Tgrenz, *ar, *as, *br, *bs; /* Grenztemperatur Regen/Schnee, Anstiege und Konstanten der Korrekturfunktion */
 	double *Phoehe;  /* Hoehen der Messstationen */
 	double *Px,*Py;  /* x- und y-Koordinaten der Messstationen */
 	int    Pmeth;                     /* Methode der P-Interpolation */
@@ -373,11 +374,17 @@ public:
 	int    nowind,notemp;            /* wird als logische Variable abgefragt, um die Art der Korrektur zu steuern, wenn
 									kein Wind und/oder keine Temperatur gemessen wurden */
 	bool   doGriddedCorrection;
+	
 	bool   routingmode;
+
+	// for regional correction, a weighted superposition of the correctionresults is required
+	int regio1index, regio2index, regio3index, weight1index, weight2index, weight3index;
+	double*** REGION, *** WEIGHT;
 
 	precicorrclass(int &retvalue,wasim::mystream *p_Stream,meteointerpol **p_meteo, /* an array of pointers to dynamic instances of meteointerpol */
 		char **p_meteonamen,char *steuername,
-		int LogLevel,int anzahlgroessen,int p_regiomax,
+		int LogLevel,int anzahlgroessen,
+		int p_regiomax, int p_regiomaxwert, int* p_rarray,
 		gridinfotype *p_gridinfo,
 		firstlast *p_FirstLastCol ,
 		int p_ncols, int p_nrows, int p_mpistartrow, int p_mpiendrow,
@@ -626,12 +633,16 @@ public:
 	**TKORR,  /* korrigierte Temperaturen */
 	**ASP,    /* Aspectgrid */
 	**SL,     /* Slopegrid */
-	**SSD,    /* Sonnenscheindauer-Grid */
+	** SSDABS,    /* Sonnenscheindauer-Grid absolute values in minutes per time step */
+	** SSD, /* Sonnenscheindauer-Grid relative values*/
 	**dhm,    /* Hoehenmodell */
 	**SHAPE,  /* Schattengrid 0=Sonne, 1=Schatten */
 	**T,      /* Temperatur (Tag bei InV > 720, sonst alleinige T für ges. Intervall) */
 	**Tnacht, /* Temperatur Nacht bei InV > 720 */
 	**IEFFMAX;/* theoretic maximum radiation regarding also the local slope, i.e. the Angle of incidence between the normal to the slope and the sun angle */
+
+	int ssdIsAbsolute;
+
 	double Isenk,spreiz;
 	int   *indexx,*indexy; /* zwei Zeiger auf ein Array aus Integern  */
 	//  double cosTheta;
@@ -640,7 +651,7 @@ public:
 	double dz;
 	double  *cos_za;  /* Ein array, das fuer alle Teilintervalle eines Intervalles InV > 60 min den sonnen-zenithwinkel speichert */
 	int   EXKORRwritegrid,SHAPEwritegrid,TKORRwritegrid,ieffmaxwritegrid;
-	int   exkorrindex,shapeindex,tnachtindex,tindex,tkorrindex,ieffmaxindex,ssdindex;
+	int   exkorrindex,shapeindex,tnachtindex,tindex,tkorrindex,ieffmaxindex,ssdindex,ssdabsindex;
 	int   cn,count;    /* nach je count Intervallen werden neue Werte berechnet */
 	int   split;    /* es werden jeweils split Teilintervalle gebildet. Fuer jedes dieser
 					Teilintervalle wird die Mittelzeit genommen, fuer diese Mittelzeit wird dann
@@ -681,8 +692,10 @@ public:
 
 	virtual void run(long me, long se,long tg,long mt,long jr);
 	virtual double **GetExpoKorrAdress();
+	virtual void convertAbsoluteToRelativeSSD(int minute,int hour,int day, int month,int houroffset);
 	/* anstelle des Destructors wird Speicher freigegeben und Standarddestructor vom Compiler erzeugt  */
 	virtual void ClearMemory();
+
 };
 
 class verdunstungsmodellklasse:

@@ -64,7 +64,7 @@ void netcdfhlp::findVarNameFromGridName(char* varname, char* gridname) {
 
 	strcpy(varname, tmpname.c_str());
 	return;
-	
+
 }
 
 
@@ -76,7 +76,7 @@ void netcdfhlp::findFileNameFromGridName(char* filename, char* gridname, bool is
 	// instead of deleting all after the first _ or .
 	strcpy(filename, gridname);
 
-	
+
 	// Append netcdf-file ending, but only if not already present
 	int index = std::string(filename).find(".nc");
 	if (index<0)
@@ -90,9 +90,9 @@ void netcdfhlp::findFileNameFromGridName(char* filename, char* gridname, bool is
 		}
 	}
 	free(tmpname);
-	
+
 	return;
-	
+
 }
 
 //////////////////////////
@@ -195,13 +195,13 @@ void netcdfWriter::setLonGrid(double* longrid) {
 	longrid_ = longrid;
 }
 
-void netcdfWriter::writeTimestep(bool doublemode, double* dataD, 
-								 float* dataF, char* filename, 
-								 char* varname, int nrows, int ncols, 
-								 double nodata,double cellsize, 
+void netcdfWriter::writeTimestep(bool doublemode, double* dataD,
+								 float* dataF, char* filename,
+								 char* varname, int nrows, int ncols,
+								 double nodata,double cellsize,
 								 int year, int  month, int  day, int  hour, int  minute)
 {
-	
+
 	try
 	{
 		bool isTimeVariable = false;
@@ -342,7 +342,7 @@ void netcdfWriter::writeTimestep(bool doublemode, double* dataD,
 				myVar = dataFile.addVar(varname, ncDouble, vdims);
 				myVar.putAtt("missing_value", ncDouble, nodata);
 				myVar.putAtt("_FillValue", ncDouble, nodata);
-// test how to rename a variable in an existing file 
+// test how to rename a variable in an existing file
 // 			myVar.rename("xyz");
 			}
 			else
@@ -350,7 +350,7 @@ void netcdfWriter::writeTimestep(bool doublemode, double* dataD,
 				myVar = dataFile.addVar(varname, ncFloat, vdims);
 				myVar.putAtt("missing_value", ncFloat, nodata);
 				myVar.putAtt("_FillValue", ncFloat, nodata);
-// test how to rename a variable in an existing file 
+// test how to rename a variable in an existing file
 //				myVar.rename("xyz");
 			}
 
@@ -390,7 +390,7 @@ void netcdfWriter::writeTimestep(bool doublemode, double* dataD,
 			dataFile.close();
 
 		} else if (!varExistsInFile(filename, varname)) {
-		
+
 			setVarInFile(filename, varname);
 			// Add a variable to an existing file
 
@@ -404,7 +404,7 @@ void netcdfWriter::writeTimestep(bool doublemode, double* dataD,
 			NcDim dimT = dataFile.getDim(dimTName);
 			NcDim dimX = dataFile.getDim("x");
 			NcDim dimY = dataFile.getDim("y");
-			
+
 			NcVar myVar;
 			std::vector<NcDim> vdims;
 			vdims.push_back(dimT);
@@ -458,7 +458,7 @@ void netcdfWriter::writeTimestep(bool doublemode, double* dataD,
 			dataFile.close();
 
 		} else {
-			
+
 			// Append a new time step to an existing netCDF file
 
 			NcFile dataFile(filename, NcFile::write, NcFile::nc4);
@@ -504,7 +504,7 @@ void netcdfWriter::writeTimestep(bool doublemode, double* dataD,
 
 
 			dataFile.close();
-			
+
 		}
 	}
 	catch (NcException &e)
@@ -571,9 +571,9 @@ void netcdfReader::readTimestep(bool doublemode, double* &stackbufD, char* filen
 		time_t acttime;
 		tm *tm1 = new(tm);
 		bool bApplyRule = false;
-		
+
 //		tm1->tm_hour = (int)((60.0 * hour + minutes_to_interval_end - timestep) / 60.0); // 0...23 --> if hour = 24, then (60*24 + 0 - 1440)/60 = 0, should usually be 0 for daily time steps.
-		
+
 		tm1->tm_hour = hour;
 		//			tm1.tm_min = useMinutes ? minute : 0; // 0..59
 		tm1->tm_min = minute; // 0..59
@@ -599,11 +599,11 @@ void netcdfReader::readTimestep(bool doublemode, double* &stackbufD, char* filen
 		//acttime = mktime(&tm1);
 
 //		actTimeValue = (double)(acttime) / 60.0 + 60.0; // since mktime returns seconds since 1070-01-01 00:00:00 and we need CET, we add 60 minutes
-		// A date/time provided in UTC wouldn't have to be changed here. But the date and time provided in WaSiM runs at the moment, 
-		// are provided in CET (i.e. UTC +1.0). That means, that the acttime contains a value that is actually 1 hour or 3600 seconds or 60 minutes too large, bacause the netCDF we use 
+		// A date/time provided in UTC wouldn't have to be changed here. But the date and time provided in WaSiM runs at the moment,
+		// are provided in CET (i.e. UTC +1.0). That means, that the acttime contains a value that is actually 1 hour or 3600 seconds or 60 minutes too large, bacause the netCDF we use
 		// will interpret the minutes since 1970-01-01 01:00:00 (and not 00:00:00), i.e. the counter must always be set 60 minutes smaller for those specific netCDFs
-		actTimeValue = (double)(acttime) / 60.0 - 60.0; 
-		
+		actTimeValue = (double)(acttime) / 60.0 - 60.0;
+
 		delete tm1;
 	}
 
@@ -739,8 +739,8 @@ void netcdfReader::readTimestep(bool doublemode, double* &stackbufD, char* filen
 					for (std::multimap<std::string, NcVar>::iterator iter = vars.begin(); iter != vars.end(); iter++)
 					{
 						if (
-							(iter->first.compare("x") != 0) && 
-							(iter->first.compare("y") != 0) && 
+							(iter->first.compare("x") != 0) &&
+							(iter->first.compare("y") != 0) &&
 							(iter->first.compare("t") != 0) &&
 							(iter->first.compare("lat") != 0) &&
 							(iter->first.compare("lon") != 0) &&
@@ -813,7 +813,7 @@ void netcdfReader::readTimestep(bool doublemode, double* &stackbufD, char* filen
 
 		netCDF::NcDim dim1 = data.getDim(1);
 		netCDF::NcDim dim2 = data.getDim(2);
-		
+
 		// getting yll and info on how rows and cols are stored
 		bool bottomup = true;
 		double *ybuf = new double[nc_rows];
@@ -911,7 +911,7 @@ void netcdfReader::readTimestep(bool doublemode, double* &stackbufD, char* filen
 			delete[] stackbufF;
 		}
 
-		if (dim2.getName() == "x") 
+		if (dim2.getName() == "x")
 		{ // transposing rows and columns because x and y coordinates where not in x-y-order but in y-x-order
 			double *temp = new double[(size_t)nc_cols * nc_rows];
 			memmove(temp, stackbufD, (size_t)nc_cols * nc_rows * sizeof(double));
@@ -940,9 +940,9 @@ void netcdfReader::readTimestep(bool doublemode, double* &stackbufD, char* filen
 			}
 			delete[] temp;
 		}
-		else 
+		else
 		{
-			if (dim1.getName() == "x") 
+			if (dim1.getName() == "x")
 			{
 				if (bottomup == true)
 				{
@@ -1032,7 +1032,7 @@ std::string netcdfReader::readTimeValue(char* filename,int actLevel)
 		int iDay = tmstart->tm_mday;
 		int iHour = tmstart->tm_hour;
 		int iMinute = tmstart->tm_min;
-		
+
 
 		std:stringstream ss;
 		ss << setw(4) << setfill('0') << iYear << "-"
@@ -1059,5 +1059,3 @@ std::string netcdfReader::readTimeValue(char* filename,int actLevel)
 }
 
 #endif
-
-
