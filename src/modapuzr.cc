@@ -70,9 +70,64 @@ version    : stream output into all possible childs of baseclass
 
 using namespace std;
 
+#include <chrono>
 #include <cmath>
 #include <cstdlib>
+#include <map>
 #include <vector>
+
+/* Debug aid for performance comparisons with ports: with WASIM_TIMING set (to a file name, or "-"
+   for stderr), the wall time between consecutive griddump points is summed per segment
+   ("after_etp -> after_interception" is the interception model) and written as a table at exit.
+   Independent of the grid dumps; nothing is changed in the model. after_precicorr, after_interpolation
+   and after_phenology exist for these segments: precipitation correction, meteo interpolation (with
+   superposition), and periodic standard grids plus vegetation parameters (int_tvar_params). Single-threaded runs only give
+   per-module times that compare with a single-threaded port. */
+static void timing_report();
+static struct ModuleTiming
+{
+	int active = -1;
+	std::string file, last;
+	std::chrono::steady_clock::time_point start, prev;
+	std::vector<std::string> order;
+	std::map<std::string, std::pair<double, long>> sums;
+	void mark(const char *point)
+	{
+		if (active == 0) return;
+		auto now = std::chrono::steady_clock::now();
+		if (active < 0)
+		{
+			const char *t = getenv("WASIM_TIMING");
+			active = (t && *t) ? 1 : 0;
+			if (!active) return;
+			file = t;
+			start = now;
+			atexit(timing_report);
+		}
+		else
+		{
+			std::string key = last + " -> " + point;
+			if (!sums.count(key)) order.push_back(key);
+			sums[key].first += std::chrono::duration<double>(now - prev).count();
+			sums[key].second += 1;
+		}
+		last = point;
+		prev = now;
+	}
+	void report()
+	{
+		FILE *f = (file == "-") ? stderr : fopen(file.c_str(), "w");
+		if (!f) return;
+		double total = std::chrono::duration<double>(prev - start).count();
+		fprintf(f, "segment\tcalls\tseconds\tms_per_call\tshare\n");
+		for (auto &k : order)
+			fprintf(f, "%s\t%ld\t%.6f\t%.4f\t%.4f\n", k.c_str(), sums[k].second, sums[k].first,
+				1000.0 * sums[k].first / sums[k].second, total > 0 ? sums[k].first / total : 0.0);
+		fprintf(f, "total (first to last point)\t\t%.6f\t\t1\n", total);
+		if (f != stderr) fclose(f);
+	}
+} timing;
+static void timing_report() { timing.report(); }
 
 /* Debug aid for porting processes: dump named grids at fixed points of the time loop.
    Only active when WASIM_DUMP_GRIDS (comma-separated grid identifications, as in modconst.h,
@@ -84,6 +139,7 @@ using namespace std;
    grids known at the first point. Nothing is changed in the model. */
 static void griddump(const char *point, gridinfotype *gridinfo, int nrows, int ncols)
 {
+	timing.mark(point);
 	static int active = -1;
 	static std::vector<std::string> names, points;
 	static std::string dir, rank;
@@ -1182,6 +1238,7 @@ int ModellApplication::run()
 
 			griddump("start", gridinfo, nrows, ncols);
 			if (superposition->do_it==0)  precicorr->run();
+			griddump("after_precicorr", gridinfo, nrows, ncols);
 
 			// if this pragma is uncommented, then the parallel pragmas in meteoint should be commented if the compiler 
 			// does not support nested omp-directives -> it's faster to user omp in the meteoint-for routine then here 
@@ -1208,6 +1265,7 @@ int ModellApplication::run()
 			// calculate the dynamic phenology now - so at the 24th hour of a day 
 			// it may happen that the parameters will suddenly change. 
 			// But for daily input values it's ok
+			griddump("after_interpolation", gridinfo, nrows, ncols);
 			int Interval;
 			if (!routingmode)
 			{
@@ -1226,6 +1284,7 @@ int ModellApplication::run()
 				initial->readPeriodicStandardGrids(minute, stunde, tag, monat, jahr, Interval); // for all standard grids with a cPerType of H, D, M or Y
 				initial->int_tvar_params(minute, stunde, tag, monat, jahr, Interval); // interpolate_zeitvariable_parameter
 			}
+			griddump("after_phenology", gridinfo, nrows, ncols);
 
 			data_assimilation_model->run(minute, stunde, tag, monat, jahr);
 

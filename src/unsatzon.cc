@@ -5208,7 +5208,7 @@ all the other parameters are used here for protecting the function in a multi th
 
 //#pragma optimize ("p",on)
 void unsatzonmodellklasse::hydraulic_heads_iterative(int offset,int i,int j,int z,
-int &maxlevel,int &s,double &h_temp,
+int &maxlevel,int &s,double &h_temp,int &initialized_head_level,
 double* &gwin,double* &gwex,double* &h_temp1,
 double* &theta_sl_old,double* &theta_average,
 double* &hh_sl,double* &hgeo_sl,double * SE_sl, double *thetar, double *thetas)
@@ -5235,8 +5235,8 @@ double* &hh_sl,double* &hgeo_sl,double * SE_sl, double *thetar, double *thetas)
 	{
 		double SE=(SE_sl!=NULL)?SE_sl[k]:1.0; // for (partly) frozen soils
 		SE=(k<1)?(1-dSEeffectiveness*(1-SE)):(1-dSEeffectivenessSoil*(1-SE));
-		/* if z!=0, the same h_temp1 value is used, so a new calculation would only waste time */
-		if (z==0) h_temp1[k] = (k>0) ? 
+		/* Reuse this split's old-state suction, initializing newly activated levels on demand. */
+		if (z==0 || k>initialized_head_level) h_temp1[k] = (k>0) ? 
 				ST[s].h_calc(k,theta_sl_old[k]*SE,thetar[k],thetas[k]) : 
 				LayeredSnowProperties[1].h_calc(levelsSnow+k,theta_sl_old[k]*SE); /* suction for the theta from the last timestep */
 		
@@ -5261,6 +5261,7 @@ double* &hh_sl,double* &hgeo_sl,double * SE_sl, double *thetar, double *thetas)
 		}
 		else hh_sl[k]-=h_temp;
 	}
+	if (l>initialized_head_level) initialized_head_level=l;
 }
 //#pragma optimize ("p",off)
 
@@ -9860,6 +9861,8 @@ void unsatzonmodellklasse::run(long me,long se,long tg,long mt,long jr,long acts
 						theta_average[kz] = theta_temp[kz] = theta_sl_old[kz] = theta_sl[kz];
 					}
 
+					// Track this split's initialized suction range, including later depth extensions.
+					int initialized_head_level=swesoffset;
 					ziter=0;
 					weight=0; /* weight: contains the sum of 1..ziter for weighting moving averages of theta */
 //					double qu0 = 0; // as temporary memory of what value qu_sl[0] had after normal flux calculation
@@ -9870,7 +9873,7 @@ void unsatzonmodellklasse::run(long me,long se,long tg,long mt,long jr,long acts
 						// (with the exception of not capturing altered conditions by infiltrating water etc, which usually should also led to a increase in sub time steps)
 						// if ((this->do_TMod > 0)&&(splitfactor>1)) 
 
-						hydraulic_heads_iterative(swesoffset,i,j,ziter,maxlevel,s,h_temp,gwin,gwex,
+						hydraulic_heads_iterative(swesoffset,i,j,ziter,maxlevel,s,h_temp,initialized_head_level,gwin,gwex,
 						                          h_temp1,theta_sl_old,theta_average,hh_sl,hgeo_sl,SE_sl,thetares,thetasat);
 						if (QDRAIN)
 						{

@@ -2786,7 +2786,7 @@ double *macrocapacity; // capacity of the macropores in any level
 					double* &hgeo_sl,double* &etrdetail,double* &extractionweight,int gwlevel,double DT,double evapmaxdepth);
 	
 	virtual void   hydraulic_heads_iterative(int offset,int i,int j,int z,
-					int &maxlevel,int &s,double &h_temp,
+					int &maxlevel,int &s,double &h_temp,int &initialized_head_level,
 					double* &gwin,double* &gwex,double* &h_temp1,
 					double* &theta_sl_old,double* &theta_average,
 					double* &hh_sl,double* &hgeo_sl,double * SE_sl, double *thetar, double *thetas);
