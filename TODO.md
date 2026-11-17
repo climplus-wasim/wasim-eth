@@ -83,16 +83,76 @@ See [docs/domain-size-limits.md](docs/domain-size-limits.md) for details.
 - [ ] `-march=native` and `-march=haswell` (legacy Linux makefiles) change results through fused multiply-add, e.g. by up to 100 in a reservoir balance file of the Rhone sample; `-ffp-contract=off` would keep them reproducible across machines.
 - [x] Overlapping `sprintf` (`sprintf(x, "%s...", x, ...)`, undefined behaviour) in 19 places. With g++ at -O3 the netCDF file names became just `.nc`, so every netCDF grid output failed; clang builds happened to work. Fixed by appending with `sprintf(x + strlen(x), ...)`; g++ and clang builds now give results identical to the reference. `-Wrestrict` (g++) finds new cases.
 - [ ] MPI runs differ from serial runs, e.g. for Doubs on 2 ranks 0 instead of nodata in some grid cells and different balance grids (already before the changes above). Check whether the MPI output gathering writes nodata correctly.
-- [ ] Snow evaporation adds each cell's EVRS to the zonal statistics twice (`etpetr.cc`, `verdunstungsmodellklasse::snow`, once in each of its two cell loops), and reduces the potential transpiration per vegetation layer but not the layer total `pot_transpiration0` (interception reduces both).
-- [ ] `SOILtabletype::get_theta` reads `h_tab[layer][0]` for suctions <= 0, but `LookUpTableGeneration` never sets index 0 (uninitialized memory; the result is θs as long as it happens to be 0). `k_calc` searches the k table with `anz_h` instead of `anz_k` (harmless while both are 30).
+- [ ] MPI decomposition depends on a timing benchmark at start-up (`defltuzr.cc:8391ff`), so it can change between runs; `MpiSpeedFactor.dat` in the working directory fixes it. Document or replace with a deterministic default.
+
+## Found while porting to wasim-gt
+
+wasim-gt reproduces each of these bit for bit, so a fix changes results and WaSiM and wasim-gt have to change together. The workarounds wasim-gt needs for that are listed in wasim-gt `TODO.md`. Sources: wasim-gt#19 (snow), #20 (meteo), #21 (permafrost), #22 (groundwater), #23 and #24 (glacier), #25 (radiation correction, ET, phenology), and the experiments repository's `gt4py/coupling.md`.
+
+### Throughout
+
+- [ ] Two values of pi: `teilmodellklasse::pi = 3.141592653` (`teilmod.cc`) and the macro `Pi = 3.14159265359` (`modconst.h:45`), both used in the same functions (e.g. `getsuncoordinates`); results depend on them and on how degree conversions are grouped (about 1e-10). Use `M_PI` (or `std::numbers::pi`).
+- [ ] Calendar handling is inconsistent:
+  - two leap-year rules, both wrong for 2000: `LUSEtabletype::GetJulDay` uses `year%4==0 && year%400!=0` (`defltuzr.cc:10021`; 2100 counts as a leap year), defaultini uses `year%4==0 && year%100!=0` on the run's end year (`defltuzr.cc:873`);
+  - `teilmodellklasse` (sun geometry, time equation) always counts February with 28 days;
+  - the step at 24:00 already carries the next day's date (wasim-gt#23).
+
+### Meteo interpolation and precipitation correction
+
+- [ ] Meteo: the regional regression is switched off in the constructor (`if ((1==2)&&(rarray))`, `meteoint.cc:3416`), so region and weight grids are read but ignored and one regression is fitted to all stations.
+- [ ] Meteo: the regression fit counts stations with `value > -missing`, IDW with `value >= -missing` (`meteoint.cc:1189` vs `1551`, `1649`).
+- [ ] Meteo, method 11: when all stations are missing, the old value is kept but `NewGrid` is not cleared, so scaling and clipping can be applied again (`meteoint.cc:3030-3065`; method 10 clears it at `2950`).
+- [ ] Meteo: the precipitation profile refit changes the vertical coefficients and the inversion boundary but keeps the raw residual-plane coefficients (`meteoint.cc:4496-4660`).
+- [ ] Meteo: a station at zero distance from a cell gets a squared distance of 1 m², so the other stations still count (`meteoint.cc:1556`, `1654`).
+
+### Radiation correction and potential evapotranspiration
+
 - [ ] Potential ET (`etpetr.cc`, `verdunstungsmodellklasse::potentiell`, line 2042): `LAIkum`, the LAI accumulated above a vegetation layer, adds `LAI[lay-1]` whenever layer `lay` has a land use, even where layer `lay-1` has none, i.e. adds -9999. The aerodynamic resistance `ra = ra_local + LAIscale*LAIkum` of the lower layer then becomes negative. Affects only cells whose top layer is empty and a lower one is not; Doubs and Rhone have none. Found while porting to GT4Py (wasim-gt#2).
 - [ ] Potential ET corrects the global radiation in place, `RG = RGEX = RG*(1+(1-cr0)*ssd*(EXKORR-1))` (`etpetr.cc:1956`), but caps only `RGEX` at 1260 Wh/m² per bright hour (line 1973). Modules running later (snow) can see a corrected global radiation above the cap.
 - [ ] Minor, in the same function: the constant `c64_0` holds 25.0 (`etpetr.cc:1349`, ratio of measurement height and roughness length for z0 > 2 m); `SSDTemp = 0.5` (line 1854) is unreachable, because `ssdFlag == 1` implies `ssdCnt >= 1`; the daylight test uses `Anteil_hell > 0.05` for the sunshine bookkeeping (line 1815) but `Anteil_hell < 0.05` for `nostrl` (`teilmod.cc:495`), so at exactly 0.05 the step is dark for the bookkeeping but gets radiation.
-- [ ] Two leap-year rules, both wrong for 2000: `LUSEtabletype::GetJulDay` uses `year%4==0 && year%400!=0` (`defltuzr.cc:10021`; 2100 counts as a leap year), the unsaturated-zone start uses `year%4==0 && year%100!=0` (line 873); the sun geometry in `teilmodellklasse` always uses 28 days for February.
+
+### Vegetation parameters and phenology
+
 - [ ] Phenology, initialisation and daily update differ (`defltuzr.cc` around 2701 and `int_tvar_params`, Richards version): rsc and rse are clamped at 0 only at initialisation, z0 is raised to 0.01 below 0.01 at initialisation but only at or below 0 in the update, and the initialisation uses the elevation model before the lake model lowers lake cells (lake initialisation method 2), the update the lowered one.
 - [ ] Phenology: before the first fix point of the year, values are interpolated from the last fix point minus 366 days, but without its altitude shift (`AltitudeCorrection`: `daystemp[0] = days[n] - 366`), so for cells away from 400 m the parameters jump on the day after the (shifted) last fix point.
-- [ ] `LUSEtabletype::GetRsc` (`defltuzr.cc:10214`) tests `GetMethod()==4` twice; the other getters test 3, 4 and 6 (dynamic phenology 4), so for DP4 the canopy resistance is interpolated in the start column where the other parameters keep the previous value.
-- [ ] MPI decomposition depends on a timing benchmark at start-up (`defltuzr.cc:8391ff`), so it can change between runs; `MpiSpeedFactor.dat` in the working directory fixes it. Document or replace with a deterministic default.
+- [ ] `LUSEtabletype::GetRsc` (`defltuzr.cc:10214`) tests `GetMethod()==4` twice where the other getters test 3, 4 and 6. Harmless today: DP4 (method 6) always takes the MultipleStartTimes branch before it.
+- [ ] Dynamic phenology: the state grids (forcing and chilling units, F*, start of growth) are created filled with zeros (and -9999 where a layer has no land use), so the initialisation rules for unset values (`< 0`: start of growth from `maxStartJDforDP1`, F* from the table, DP1 fallback of DP2/DP4 while no chilling grid is read; `defltuzr.cc` around 2675) never apply to a fresh run. The start of growth stays 0 and F* stays 0 until the first `JDReset_TStart`, and DP2/DP4 switch off their DP1 fallback at once, unlike the manual (2.23.2, 2.23.4) says.
+- [ ] Dynamic phenology: the day number `tagnr` uses defaultini's month table, whose February has 29 days in every year of a run whose end year is a leap year (`defltuzr.cc:873`), and 28 otherwise; the parameter interpolation uses `GetJulDay` with another rule.
+- [ ] Dynamic phenology: the MultipleStartTimes are initialised with the altitude shift of the fix points but reset at `JDReset_TStart` (and for DP3 on day 1) without it; the initialisation also uses the elevation model before the lake model lowers lake cells. The start of leaf fall and its cold-day counter (`StartDayOfLeaveFall`, level 0 of `TemperatureMOVAVG7`) are one grid per cell, shared by all vegetation layers.
+
+### Snow, snow evaporation and permafrost
+
+- [ ] Snow, daily steps only (`InV > 720`), relevant for daily runs of the Swiss setup:
+  - `run1` calls `calc_Accu_and_Melt` twice, for the night and the day fraction. Each call applies the wind redistribution `P += DEPOINDEX * P_SNOW` to the input grid in place, so the second call redistributes the already redistributed precipitation (`snowmod.cc:2863`, `4282-4286`). For DEPOINDEX = 0.3 the factor approaches 1.3 * 1.3 instead of 1.3, also for the water passed on to the soil.
+  - In the sublimation case of the melt branch, `Mass_lat` is multiplied by `Anteil` twice (`snowmod.cc:3341`, `3410`), so sublimation shrinks with the square of the day or night fraction.
+- [ ] Snow, melt branch: only negative `Mass_lat` (sublimation) is taken from the snow; condensation on melting snow (positive `Mass_lat`) is dropped (`snowmod.cc:3423`). Intended?
+- [ ] Snow, refreezing branch: after the surface-temperature iteration the surface temperature can be limited (air - 13 K, or 0 degC), and only the latent heat flux is recomputed; refreezing still uses the energy balance of the unlimited temperature (`snowmod.cc:3087-3102`, `3186`).
+- [ ] Snow evaporation adds each cell's EVRS to the zonal statistics twice (`etpetr.cc`, `verdunstungsmodellklasse::snow`, once in each of its two cell loops), and reduces the potential transpiration per vegetation layer but not the layer total `pot_transpiration0` (interception reduces both).
+- [ ] Permafrost: WaSiM stops with error 33 unless `SnowCoverDaysGrid` is given as a standard grid. When it creates the counter grids itself, the second check tests `_SnowFreeDaysGrid_` again instead of `_SnowCoverDaysGrid_` (`snowmod.cc:2548`), so after creating the snow-free grid it looks up a snow-cover grid that does not exist. The `[permafrost]` sections of the Doubs and Rhone setups and of `docs/sample_control_file.wasim` also have 3 entries, while snow and soil model read 5 (statistics file and reduced k_sat, `snowmod.cc:2587-2589`, `unsatzon.cc:1406-1410`).
+
+### Glacier
+
+- [ ] Glacier: `Aice` and `Asnow` count the day of the year as `tag + (month-1) * mon[month]` (the loop adds `mon[(int)mt]` instead of `mon[i]`, `snowmod.cc:2660-2674`), so the seasonal sine of the radiation coefficients is shifted by up to a few days (1 July: day 187 instead of 182).
+- [ ] Glacier dynamics: `CreateNewGlacierCells` returns at once for every existing glacier (`if (glacierindexmap.find(id) != glacierindexmap.end()) return;`, `snowmod.cc:6548`), so glaciers never grow into new cells; for an unknown id the next line dereferences `end()`.
+- [ ] Glacier dynamics: `UpdateGlacierStatisticsZones` passes `isIce = false` to `addCell` (`snowmod.cc:6290`), so each glacier's elevation range is the elevation of its first cell and the elevation bands used for growing and shrinking collapse. Every added cell also extends the old area and volume again (`:6293-6306`).
+- [ ] Glacier dynamics: `elevationbelt::addChangesToMarginCells` subtracts the negative value of a cell that drops below 0 from the remaining change (`remainingChanges -= temp`, `snowmod.cc:7208`) instead of the part of the change it absorbed.
+
+### Soil hydraulic functions
+
+- [ ] `SOILtabletype::get_theta` reads `h_tab[layer][0]` for suctions <= 0, but `LookUpTableGeneration` never sets index 0 (uninitialized memory; the result is θs as long as it happens to be 0). `k_calc` searches the k table with `anz_h` instead of `anz_k` (harmless while both are 30).
+
+### Groundwater (wasim-gt#22)
+
+- [ ] The thickness of the first aquifer is overwritten with the total soil thickness at start-up (`gwflow.cc:568-584`).
+- [ ] The soil model changes the storage coefficient S0 in every sub step (`unsatzon.cc:1629-1633`, `10888-10900`), so S0 is a state shared by two modules rather than a parameter.
+- [ ] `gw_head_old_old_1` is registered with the pointer of `gw_head_old_1` (`gwflow.cc:789-791`), and the iteration grid reuses that name (`815-818`), so the second-to-last head cannot be written out or inspected.
+- [ ] Asymmetries: the x transmissivity tests `> upper + 0.01` for the cell itself but `>=` for its neighbour and in y (`gwflow.cc:1172`, `1194`, `1272`); the head update mixes neighbours in north, east, south, west order but sums the transmissivities as north, south, east, west (`1713-1725`).
+- [ ] Convergence is measured before the SOR step and divided by 5 in confined conditions (`gwflow.cc:1742-1782`).
+- [ ] The balance adds the fluxes to the old water content and subtracts it again instead of summing the fluxes, and leaves out fixed fluxes (`gwflow.cc:2483-2495`).
+
+### Unsaturated zone: flux restrictions
+
+- [ ] `flux_restrictions` and `flux_restrictions_opt` test `if (gwin[k] += qu_sl[k] >= 0)` (`unsatzon.cc:5916`, `5942`; `_loc` arrays at `6287`, `6313`): by precedence this adds `(qu_sl[k] >= 0)`, which is 0 there (the flux is negative), to `gwin[k]` and then tests `gwin[k]`, which is positive, so the first branch always runs and the infiltration from groundwater can become negative. Probably meant `gwin[k] + qu_sl[k] >= 0`. Only with groundwater coupling (`surface_interaction > 1`).
 
 ## Setup
 

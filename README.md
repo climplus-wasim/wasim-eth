@@ -76,3 +76,8 @@ The MPI build splits the active cells of the domain into one region per process 
 ### Debugging
 
 Build with `make DEBUG=1` (`-O0 -g`, not stripped) and run under `gdb` or the VS Code C++ debugger with the control file as program argument. Use `OMP_NUM_THREADS=1` while debugging.
+
+Two hooks in `src/modapuzr.cc` help to compare WaSiM with a port of single processes (wasim-gt); without their environment variables they do nothing, and results are unchanged:
+
+- `WASIM_DUMP_GRIDS`, `WASIM_DUMP_DIR`, `WASIM_DUMP_POINTS`: write named grids at fixed points of the time step (before and after each process) as raw float64; see the comment above `griddump`.
+- `WASIM_TIMING=<file>` (or `-` for stderr): sum the wall time between those points per segment and write a table at exit, e.g. `after_expokorr -> after_etp` is the potential evapotranspiration. Use `OMP_NUM_THREADS=1` for per-module times that compare with a single-threaded port.
